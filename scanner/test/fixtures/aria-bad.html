@@ -1,0 +1,20 @@
+<!doctype html>
+<!-- aria-tree: fails on title and names; cantTell on main, h1, h2 -> h4 skip, unnamed navs. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title></title>
+</head>
+<body>
+  <nav><a href="/">Home</a></nav>
+  <nav><a href="/news"><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="20" height="20"></a></nav>
+  <div>
+    <h2>Section</h2>
+    <h4>Skipped a level</h4>
+    <input type="text">
+    <select><option>A</option></select>
+    <button></button>
+    <button aria-label="Close">x</button>
+  </div>
+</body>
+</html>

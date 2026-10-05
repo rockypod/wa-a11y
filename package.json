@@ -1,0 +1,20 @@
+{
+  "name": "wa-a11y",
+  "description": "wa-a11y \u2014 WCAG 2.2 accessibility checker",
+  "license": "AGPL-3.0-or-later",
+  "author": "Kevin Miller (rockypod)",
+  "homepage": "https://github.com/rockypod/wa-a11y",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rockypod/wa-a11y.git"
+  },
+  "private": true,
+  "packageManager": "pnpm@11.5.2",
+  "engines": {
+    "node": ">=24 <27"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -C scanner typecheck"
+  }
+}

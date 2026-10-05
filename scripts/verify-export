@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# wa-a11y
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# This file is part of wa-a11y.
+# Copyright (C) 2026 Kevin Miller (rockypod)
+# Modifications must retain this wa-a11y notice and document all changes
+# pursuant to AGPLv3 Section 5 and Section 7.
+# AGPLv3: the public export (git archive REF, default HEAD) is Corresponding Source only
+
+set -uo pipefail
+
+ROOT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel 2>/dev/null)" \
+  || { echo "verify-export: not inside a git repo" >&2; exit 2; }
+cd "$ROOT" || { echo "verify-export: cannot cd to repo root" >&2; exit 2; }
+REF="${1:-HEAD}"
+
+INTERNAL_DIRS=(project tasks .internal internal .ai ai scratch .forgejo .github)
+
+internal() {
+  local p="${1%/}" d
+  for d in "${INTERNAL_DIRS[@]}"; do
+    case "$p" in
+      "$d" | */"$d" | "$d"/* | */"$d"/*) return 0 ;;
+    esac
+  done
+  case "$p" in
+    docs/internal | docs/internal/*) return 0 ;;
+    prompts | prompts/*) return 0 ;;
+    AUDIT.md | */AUDIT.md | RESEARCH.md | */RESEARCH.md) return 0 ;;
+    .gitattributes | */.gitattributes | .editorconfig | */.editorconfig) return 0 ;;
+    *.prompt | *.scratchpad | *.private.*) return 0 ;;
+  esac
+  return 1
+}
+
+REQUIRED=(
+  LICENSE
+  NOTICE
+  README.md
+  compose.yaml
+  .env.example
+  .gitignore
+  .dockerignore
+  web/pyproject.toml
+  web/uv.lock
+  pnpm-lock.yaml
+  scanner/package.json
+  styles/package.json
+  deploy/caddy/Dockerfile
+  web/Dockerfile
+  scanner/Dockerfile
+  scripts/check
+  scripts/selfscan
+  selfscan/seed.py
+)
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+if ! git archive --format=tar "$REF" >"$TMP/export.tar" 2>"$TMP/err"; then
+  echo "verify-export: git archive $REF failed:" >&2
+  sed 's/^/  /' "$TMP/err" >&2
+  exit 2
+fi
+tar -tf "$TMP/export.tar" | grep -v '^pax_global_header$' >"$TMP/paths" \
+  || { echo "verify-export: could not read the archive of $REF" >&2; exit 2; }
+
+internal_paths=()
+while IFS= read -r p; do
+  [[ -n "$p" ]] || continue
+  internal "$p" && internal_paths+=("$p")
+done <"$TMP/paths"
+
+missing=()
+for f in "${REQUIRED[@]}"; do
+  grep -qxF "$f" "$TMP/paths" || missing+=("$f")
+done
+
+count="$(grep -c . "$TMP/paths")"
+((${#internal_paths[@]})) && printf 'verify-export: internal path exported: %s\n' "${internal_paths[@]}" >&2
+((${#missing[@]})) && printf 'verify-export: required file missing: %s\n' "${missing[@]}" >&2
+if ((${#internal_paths[@]} || ${#missing[@]})); then
+  echo "verify-export: FAIL — $count files exported, ${#internal_paths[@]} internal, ${#missing[@]} required missing ($REF)"
+  exit 1
+fi
+echo "verify-export: PASS — $count files exported, 0 internal, ${#REQUIRED[@]}/${#REQUIRED[@]} required present ($REF)"

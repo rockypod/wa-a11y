@@ -1,0 +1,39 @@
+{
+  "name": "@wa-a11y/scanner",
+  "description": "wa-a11y \u2014 WCAG 2.2 accessibility checker",
+  "license": "AGPL-3.0-or-later",
+  "author": "Kevin Miller (rockypod)",
+  "homepage": "https://github.com/rockypod/wa-a11y",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rockypod/wa-a11y.git"
+  },
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.5.2",
+  "engines": {
+    "node": ">=24 <27"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "c8 --reporter=json --reporter=text-summary --reports-dir=coverage --include=src tsx --test test/*.test.ts",
+    "selfscan": "tsx selfscan/run.ts",
+    "aria": "tsx selfscan/aria.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "axe-core": "^4.13.0",
+    "c8": "^12.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@siteimprove/alfa-playwright": "^0.84.2",
+    "@siteimprove/alfa-test-utils": "^0.84.2",
+    "playwright": "1.63.0"
+  }
+}

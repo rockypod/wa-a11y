@@ -1,0 +1,606 @@
+/*
+ * wa-a11y
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ *
+ * This file is part of wa-a11y.
+ * Copyright (C) 2026 Kevin Miller (rockypod)
+ * Modifications must retain this wa-a11y notice and document all changes
+ * pursuant to AGPLv3 Section 5 and Section 7.
+ */
+
+@use "sass:map";
+@use "tokens.generated" as tokens;
+
+// No Bootstrap JS: no-JS policy
+// WCAG 2.2 SC 1.4.6: stock theme colours fail 7:1, so every one comes from tokens
+$wa: tokens.$wa-light;
+$primary: map.get($wa, "accent-teal");
+$secondary: map.get($wa, "text-secondary");
+$success: map.get($wa, "accent-sage");
+$warning: map.get($wa, "accent-amber-text");
+$danger: map.get($wa, "accent-amber-text");
+$info: map.get($wa, "accent-teal");
+$light: map.get($wa, "surface-subtle");
+$dark: map.get($wa, "text-primary");
+
+$enable-transitions: false;
+$enable-smooth-scroll: false;
+$enable-shadows: false;
+$enable-gradients: false;
+$enable-reduced-motion: true;
+
+$font-family-sans-serif: var(--wa-font);
+$font-size-base: 1.125rem;
+// WCAG 2.2 SC 1.4.8: line spacing ≥ 1.5, paragraph spacing ≥ 1.5 × line spacing
+$line-height-base: 1.65;
+$headings-line-height: 1.3;
+$paragraph-margin-bottom: 2em;
+$link-decoration: underline;
+$link-hover-decoration: underline;
+$link-underline-offset: 4px;
+$input-border-width: 2px;
+$btn-font-weight: 600;
+$btn-border-width: 2px;
+$focus-ring-width: 3px;
+$focus-ring-opacity: 1;
+$focus-ring-color: map.get($wa, "border-focus");
+$nav-link-padding-x: 0;
+$nav-link-padding-y: 0;
+// WCAG 2.2 SC 1.4.1: no validation icons; the ⚠ text marker is the cue
+$enable-validation-icons: false;
+$alert-padding-y: 1rem;
+$alert-padding-x: 1.25rem;
+$alert-margin-bottom: 2rem;
+$alert-border-width: 3px;
+
+@import "bootstrap/scss/bootstrap";
+
+:root,
+[data-theme] {
+  --bs-body-bg: var(--surface-bg);
+  --bs-body-color: var(--text-primary);
+  --bs-secondary-color: var(--text-secondary);
+  --bs-tertiary-color: var(--text-muted);
+  --bs-secondary-bg: var(--surface-subtle);
+  --bs-tertiary-bg: var(--surface-subtle);
+  --bs-emphasis-color: var(--text-primary);
+  --bs-heading-color: var(--text-primary);
+  --bs-link-color: var(--accent-teal);
+  --bs-link-color-rgb: initial;
+  --bs-link-hover-color: var(--accent-teal-hover);
+  --bs-border-color: var(--border-decorative);
+  --bs-focus-ring-color: var(--border-focus);
+  --bs-form-invalid-color: var(--accent-amber-text);
+  --bs-form-invalid-border-color: var(--accent-amber-text);
+  --wa-measure: 68ch;
+  --wa-target: 44px;
+}
+
+body {
+  background-color: var(--surface-bg);
+  color: var(--text-primary);
+  letter-spacing: 0.015em;
+  word-spacing: 0.025em;
+}
+
+[data-spacing="wide"] body {
+  letter-spacing: 0.05em;
+  word-spacing: 0.12em;
+  line-height: 1.85;
+}
+
+// WCAG 2.2 SC 1.4.8: line length ≤ 80 characters, never justified
+p, li, dd, blockquote, figcaption, label, .form-text {
+  max-width: var(--wa-measure);
+}
+p, li, dd, blockquote, h1, h2, h3, h4, h5, h6, td, th, label {
+  text-align: start;
+  text-wrap: pretty;
+}
+
+// WCAG 2.2 SC 1.4.1: links always underlined
+a,
+a:visited {
+  color: var(--accent-teal);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+a:hover,
+a:visited:hover {
+  color: var(--accent-teal-hover);
+  text-decoration-thickness: 3px;
+}
+
+// WCAG 2.2 SC 2.4.13: 3px solid focus outline with offset in every theme
+:focus-visible {
+  outline: 3px solid var(--border-focus) !important;
+  outline-offset: 3px;
+  box-shadow: none !important;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+// WCAG 2.2 SC 2.5.5: targets ≥ 44×44px
+.btn, .form-control, .form-select, .page-link, .nav-link, .form-check-input + .form-check-label,
+.skip-link, summary {
+  min-height: var(--wa-target);
+}
+.btn, .page-link {
+  min-width: var(--wa-target);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.form-check-input {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+// WCAG 2.2 SC 1.4.12: line-height normal (!important) so tall reading fonts never clip
+.form-control, .form-select {
+  height: auto;
+  padding-block: 0.5em;
+  line-height: normal !important;
+}
+// WCAG 2.2 SC 1.4.11: 2px control borders
+.form-control, .form-select, .form-check-input {
+  border: 2px solid var(--border-control);
+  background-color: var(--surface-card);
+  color: var(--text-primary);
+  max-width: 40ch;
+}
+
+.btn-primary {
+  --bs-btn-bg: var(--accent-teal);
+  --bs-btn-border-color: var(--accent-teal);
+  --bs-btn-color: var(--on-accent);
+  --bs-btn-hover-bg: var(--accent-teal-hover);
+  --bs-btn-hover-border-color: var(--accent-teal-hover);
+  --bs-btn-hover-color: var(--on-accent);
+  --bs-btn-active-bg: var(--accent-teal-hover);
+  --bs-btn-active-color: var(--on-accent);
+}
+
+.card {
+  --bs-card-bg: var(--surface-card);
+  --bs-card-border-color: var(--border-decorative);
+  --bs-card-color: var(--text-primary);
+}
+
+.skip-link {
+  position: absolute;
+  inset-inline-start: 1rem;
+  top: -100px;
+  padding: 0.5rem 1rem;
+  background: var(--surface-card);
+  color: var(--accent-teal);
+  z-index: 1000;
+}
+.skip-link:focus {
+  top: 1rem;
+}
+
+// WCAG 2.2 SC 2.3.3: no motion
+*, *::before, *::after {
+  transition: none !important;
+  animation: none !important;
+  scroll-behavior: auto !important;
+}
+
+table, .wa-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.table {
+  --bs-table-color: var(--text-primary);
+  --bs-table-bg: var(--surface-card);
+  --bs-table-border-color: var(--border-decorative);
+}
+// WCAG 2.2 SC 1.4.10: long cell content wraps at 320px
+td, th {
+  overflow-wrap: anywhere;
+}
+.wa-summary th {
+  font-weight: 700;
+}
+
+.wa-header, .wa-main, .wa-footer {
+  max-width: 60rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+// WCAG 2.2 SC 1.4.10: navs wrap at 320px (no hamburger: no-JS policy)
+.wa-header {
+  border-bottom: 2px solid var(--border-decorative);
+  padding-block: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+}
+.wa-nav-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.wa-nav-account {
+  margin-inline-start: auto;
+  max-width: 100%;
+}
+.nav {
+  gap: 0.5rem 1.5rem;
+}
+// WCAG 2.2 SC 1.4.1: nav links stay underlined
+.nav-link,
+.nav-link:focus {
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+.nav-link:hover {
+  text-decoration-line: underline;
+  text-decoration-thickness: 3px;
+}
+// WCAG 2.2 SC 2.4.8: current page is bold with a thicker underline, not colour alone
+.nav-link[aria-current="page"] {
+  font-weight: 700;
+  text-decoration-thickness: 4px;
+}
+.wa-brand {
+  font-weight: 700;
+}
+.breadcrumb {
+  margin-block-start: 1rem;
+  row-gap: 0.5rem;
+}
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+}
+// WCAG 2.2 SC 1.1.1: decorative divider has empty alt text
+.breadcrumb-item + .breadcrumb-item::before {
+  content: "›" / "";
+}
+.wa-main {
+  padding-block: 1rem 3rem;
+}
+.wa-main:focus {
+  outline: none;
+}
+.wa-footer {
+  border-top: 2px solid var(--border-decorative);
+  padding-block: 1rem;
+  color: var(--text-secondary);
+}
+.wa-field {
+  margin-block-end: 2rem;
+  border: 0;
+  padding: 0;
+}
+legend, .form-label {
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+.form-check {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: var(--wa-target);
+}
+.form-check-input {
+  margin: 0;
+  flex: none;
+}
+.form-check-label {
+  display: inline-flex;
+  align-items: center;
+}
+.alert,
+.alert-warning,
+.alert-success,
+.alert-info {
+  --bs-alert-bg: var(--surface-bg);
+  --bs-alert-color: var(--text-primary);
+  --bs-alert-border-color: var(--border-control);
+  --bs-alert-link-color: var(--accent-teal);
+}
+.alert-warning {
+  --bs-alert-bg: var(--accent-amber-tint);
+  --bs-alert-border-color: var(--accent-amber-text);
+}
+.alert-success {
+  --bs-alert-border-color: var(--accent-sage);
+}
+.alert-info {
+  --bs-alert-border-color: var(--accent-teal);
+}
+.wa-error-title {
+  font-weight: 700;
+}
+// WCAG 2.2 SC 1.4.1: errors use border, text and ⚠, never colour alone
+.invalid-feedback {
+  display: block;
+  margin-block: 0 0.5rem;
+  font-size: 1em;
+  font-weight: 700;
+  color: var(--bs-form-invalid-color);
+}
+.invalid-feedback::before {
+  content: "⚠ " / "Error: ";
+}
+.form-control.is-invalid:focus, .form-check-input.is-invalid:focus {
+  box-shadow: none;
+}
+.list-group {
+  --bs-list-group-color: var(--text-primary);
+  --bs-list-group-bg: var(--surface-card);
+  --bs-list-group-border-color: var(--border-decorative);
+  --bs-list-group-border-width: 2px;
+  max-width: var(--wa-measure);
+  margin-block-end: 1.5rem;
+}
+.badge {
+  --bs-badge-color: var(--text-primary);
+  --bs-badge-font-size: 1em;
+  --bs-badge-padding-y: 0.15em;
+  background-color: var(--surface-subtle);
+  border: 2px solid var(--border-control);
+  line-height: normal;
+}
+// WCAG 2.2 SC 1.4.10: long URLs reflow at 320px
+.wa-recent li, .wa-sc li {
+  overflow-wrap: anywhere;
+}
+.wa-recent li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1.5rem;
+}
+.list-group.wa-recent, .wa-recent li {
+  max-width: none;
+}
+.wa-recent li > a:first-child {
+  max-width: var(--wa-measure);
+}
+.wa-recent li > a + a {
+  margin-inline-start: auto;
+}
+.wa-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+}
+.pagination {
+  --bs-pagination-color: var(--accent-teal);
+  --bs-pagination-bg: var(--surface-bg);
+  --bs-pagination-border-width: 2px;
+  --bs-pagination-border-color: var(--border-control);
+  --bs-pagination-hover-color: var(--accent-teal-hover);
+  --bs-pagination-hover-bg: var(--surface-bg);
+  --bs-pagination-hover-border-color: var(--border-control);
+  --bs-pagination-focus-color: var(--accent-teal-hover);
+  --bs-pagination-focus-bg: var(--surface-bg);
+  --bs-pagination-focus-box-shadow: none;
+  --bs-pagination-active-color: var(--on-accent);
+  --bs-pagination-active-bg: var(--accent-teal);
+  --bs-pagination-active-border-color: var(--accent-teal);
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-inline-start: 0;
+}
+.pagination .page-item .page-link {
+  margin-inline-start: 0;
+  border-radius: var(--bs-pagination-border-radius);
+  text-decoration: underline;
+}
+.pagination .page-item.active .page-link {
+  font-weight: 700;
+  text-decoration: none;
+}
+.wa-page-gap {
+  display: flex;
+  align-items: center;
+  padding-inline: 0.25rem;
+}
+.wa-sc {
+  margin-block-end: 1.5rem;
+}
+.wa-card {
+  margin-block-end: 1.5rem;
+}
+.card-body > :last-child {
+  margin-block-end: 0;
+}
+.wa-finding {
+  border-top: 2px solid var(--border-decorative);
+  padding-block: 0.5rem;
+}
+.wa-finding summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+.wa-finding summary::-webkit-details-marker {
+  display: none;
+}
+// WCAG 2.2 SC 1.4.10: rule ids and long titles reflow at 320px
+.wa-finding-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.wa-icon {
+  flex: none;
+  width: 1em;
+  height: 1em;
+}
+.wa-finding .wa-chev-open,
+.wa-finding[open] .wa-chev-closed {
+  display: none;
+}
+.wa-finding[open] .wa-chev-open {
+  display: inline-block;
+}
+// WCAG 2.2 SC 2.5.5: closed content leaves layout so it never covers the next target
+.wa-finding:not([open])::details-content {
+  display: none;
+}
+pre, code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+}
+pre {
+  background: var(--surface-subtle);
+  padding: 0.75rem;
+  border: 1px solid var(--border-decorative);
+}
+
+// WCAG 2.2 SC 2.5.5: 44px targets for links outside running text (inline exception)
+.nav-link, .breadcrumb-item a, main li > a, .wa-standalone {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--wa-target);
+  min-width: var(--wa-target);
+  max-width: 100%;
+}
+// WCAG 2.2 SC 1.4.10: long URLs and identifiers break anywhere
+main a, main code, main li {
+  overflow-wrap: anywhere;
+}
+
+// WCAG 2.2 SC 1.4.12: long strings wrap inside their own box
+.wa-blocked code, .wa-finding li code {
+  display: block;
+  max-width: 100%;
+}
+
+:root {
+  --wa-font: "Atkinson Hyperlegible Next", system-ui, sans-serif;
+}
+:root[data-font="lexend"] {
+  --wa-font: "Lexend", system-ui, sans-serif;
+}
+:root[data-font="opendyslexic"] {
+  --wa-font: "OpenDyslexic", system-ui, sans-serif;
+}
+:root[data-font="browser"] {
+  --wa-font: initial;
+}
+body {
+  font-family: var(--wa-font);
+}
+.wa-font-atkinson { font-family: "Atkinson Hyperlegible Next", system-ui, sans-serif; }
+.wa-font-lexend { font-family: "Lexend", system-ui, sans-serif; }
+.wa-font-opendyslexic { font-family: "OpenDyslexic", system-ui, sans-serif; }
+.wa-font-browser { font-family: initial; }
+.wa-status {
+  font-weight: 600;
+}
+
+// WCAG 2.2 SC 1.4.10: account area wraps; long e-mails break
+.wa-account {
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-block: 0.5rem;
+}
+.wa-account > li {
+  max-width: 100%;
+  min-width: 0;
+}
+.wa-who {
+  margin: 0;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.btn-outline-primary {
+  --bs-btn-color: var(--accent-teal);
+  --bs-btn-border-color: var(--accent-teal);
+  --bs-btn-bg: transparent;
+  --bs-btn-hover-color: var(--on-accent);
+  --bs-btn-hover-bg: var(--accent-teal);
+  --bs-btn-hover-border-color: var(--accent-teal);
+  --bs-btn-active-color: var(--on-accent);
+  --bs-btn-active-bg: var(--accent-teal-hover);
+  --bs-btn-active-border-color: var(--accent-teal-hover);
+}
+
+.form-text > code {
+  display: block;
+  margin-block: 0.25rem;
+}
+
+// WCAG 2.2 SC 1.4.10: one column at 320px, no sideways scroll
+.wa-footer-nav {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+  gap: 1rem 2rem;
+}
+.wa-footer-group {
+  min-width: 0;
+}
+.wa-footer-group p {
+  margin-block: 0.5rem;
+  overflow-wrap: anywhere;
+}
+.wa-footer-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin-block: 0.5rem;
+  color: var(--text-primary);
+}
+.wa-footer-links {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+// WCAG 2.2 SC 2.5.5: footer links ≥ 44×44px
+.wa-footer-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--wa-target);
+  min-width: var(--wa-target);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+// Privacy: provenance banner stays visible in every medium, including print
+.wa-provenance {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.wa-consent {
+  align-items: flex-start;
+}
+.wa-consent .form-check-label {
+  display: block;
+}
+// WCAG 2.2 SC 1.4.10: e-mail addresses reflow at 320px
+.wa-grant, .wa-verified {
+  border-inline-start: 4px solid var(--accent-sage);
+  padding-inline-start: 0.75rem;
+  overflow-wrap: anywhere;
+}
+@media print {
+  .wa-provenance {
+    display: block !important;
+    visibility: visible !important;
+  }
+  .wa-finding:not([open])::details-content {
+    content-visibility: visible;
+    display: block;
+  }
+  .wa-finding .wa-chev-open,
+  .wa-finding .wa-chev-closed {
+    display: none;
+  }
+}

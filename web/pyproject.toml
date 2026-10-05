@@ -1,0 +1,54 @@
+# wa-a11y
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# This file is part of wa-a11y.
+# Copyright (C) 2026 Kevin Miller (rockypod)
+# Modifications must retain this wa-a11y notice and document all changes
+# pursuant to AGPLv3 Section 5 and Section 7.
+
+[project]
+name = "wa-a11y-web"
+version = "0.2.1"
+description = "WA-A11y web app (FastHTML)"
+license = "AGPL-3.0-or-later"
+authors = [{ name = "Kevin Miller (rockypod)" }]
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "alembic>=1.20.0",
+    "argon2-cffi>=25.1.0",
+    "chromadb>=1.5.9",
+    "python-fasthtml>=0.14.13",
+    "sqlmodel>=0.0.47",
+    "uvicorn>=0.54.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/rockypod/wa-a11y"
+Source = "https://github.com/rockypod/wa-a11y"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+    "ruff>=0.16.10",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S104"]  # asserts; 0.0.0.0 test data
+"tests/test_pii_scan.py" = ["S603", "S607"]  # fixed-argument subprocesses
+"tests/test_review_pack.py" = ["S603", "S607"]  # fixed-argument subprocesses
+"tests/test_release_github.py" = ["S603", "S607"]  # fixed-argument subprocesses
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

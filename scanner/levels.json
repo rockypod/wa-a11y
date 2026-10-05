@@ -1,0 +1,13 @@
+{
+  "$comment": "Single source of truth for scan levels. axe tags must exist in the installed axe-core (tested). axe 4.13 has no wcag22a / wcag21aaa / wcag22aaa tags. best-practice is advisory, not conformance, so it is never included.",
+  "2.2-AA": {
+    "axeTags": ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"],
+    "alfa": "aa",
+    "maxLevel": "AA"
+  },
+  "2.2-AAA": {
+    "axeTags": ["wcag2a", "wcag2aa", "wcag2aaa", "wcag21a", "wcag21aa", "wcag22aa"],
+    "alfa": "all-wcag",
+    "maxLevel": "AAA"
+  }
+}

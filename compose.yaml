@@ -1,0 +1,81 @@
+# wa-a11y
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# This file is part of wa-a11y.
+# Copyright (C) 2026 Kevin Miller (rockypod)
+# Modifications must retain this wa-a11y notice and document all changes
+# pursuant to AGPLv3 Section 5 and Section 7.
+
+# Portable keys only (Docker and Podman): no bind mounts, no host networking.
+# Security: only caddy publishes a port, on loopback by default.
+name: wa-a11y
+
+services:
+  caddy:
+    build:
+      context: .
+      dockerfile: deploy/caddy/Dockerfile
+    image: localhost/wa-a11y-caddy:dev
+    ports:
+      # WA_A11Y_BIND: 127.0.0.1 (default) or a tailnet IP; WA_A11Y_PORT: default 8580
+      - "${WA_A11Y_BIND:-127.0.0.1}:${WA_A11Y_PORT:-8580}:8080"
+    networks: [front]
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8081/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    image: localhost/wa-a11y-web:dev
+    env_file: .env  # WA_A11Y_SESSION_SECRET is required
+    environment:
+      SCANNER_URL: http://scanner:3001
+      # Security: same source as the scanner's value, so both URL guards agree
+      WA_A11Y_ALLOW_LOCAL_TARGETS: ${WA_A11Y_ALLOW_LOCAL_TARGETS:-}
+      WA_A11Y_BASE_PATH: ${WA_A11Y_BASE_PATH:-}
+    volumes:
+      - wa-a11y-data:/data
+    networks: [front, back]
+    depends_on:
+      scanner:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  scanner:
+    build:
+      context: .
+      dockerfile: scanner/Dockerfile
+    image: localhost/wa-a11y-scanner:dev
+    # Egress: private addresses are refused, even after redirects; SCANNER_ALLOW_INTERNAL stays unset in production
+    environment:
+      WA_A11Y_ALLOW_LOCAL_TARGETS: ${WA_A11Y_ALLOW_LOCAL_TARGETS:-}
+    networks: [back]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+networks:
+  front: {}
+  back: {}
+
+volumes:
+  wa-a11y-data: {}

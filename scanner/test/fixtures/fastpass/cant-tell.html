@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>FastPass: needs a person</title>
+  <style>
+    body { color: #000; background: #fff; }
+    :focus-visible { outline: 3px solid #000; }
+    #shadow, #shadow:focus-visible { outline: none; }
+    #shadow:focus-visible { box-shadow: 0 0 0 1px #000; }
+    #low { position: absolute; top: 600px; }
+    #high { position: absolute; top: 300px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Needs a person</h1>
+    <!-- cantTell: 2.4.3 positive tabindex and upward Tab order; 2.4.13 thin shadow indicator. -->
+    <button type="button" tabindex="1" id="first">Jumps the queue</button>
+    <button type="button" id="shadow">Thin shadow focus</button>
+    <a href="#a" id="low">Lower link, reached first</a>
+    <a href="#b" id="high">Higher link, reached second</a>
+  </main>
+</body>
+</html>

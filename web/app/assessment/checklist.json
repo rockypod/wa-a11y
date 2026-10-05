@@ -1,0 +1,411 @@
+{
+  "$comment": "wa-a11y guided manual Assessment checklist, AGPL-3.0-or-later, Copyright (C) 2026 Kevin Miller (rockypod). Items a person checks that automated tools cannot prove. Plain language; WCAG 2.2 only; level = the primary (first) SC's level, matching web/app/wcag.py. Advisory items are good practice, not conformance requirements. Reviewer notes must never contain personal data.",
+  "version": 1,
+  "items": [
+    {
+      "id": "kbd-basics",
+      "title": "Use the whole page with just a keyboard",
+      "sc": [
+        "2.1.1",
+        "2.1.3"
+      ],
+      "level": "A",
+      "purpose": "Find anything a mouse user can do that a keyboard user cannot.",
+      "instructions": "Put the mouse away. Use Tab, Shift+Tab, Enter, Space and the arrow keys to reach and use every control: links, buttons, forms, menus, media. Do not use a mouse at all.",
+      "observe": "Every control can be reached with Tab, and can be used with Enter, Space or arrows. Nothing is only usable with a mouse. For Level AAA, there are no exceptions at all.",
+      "evidence": "Note any control you could reach but not use, and what happened instead.",
+      "advisory": false
+    },
+    {
+      "id": "kbd-trap",
+      "title": "Check you can always leave with the keyboard",
+      "sc": [
+        "2.1.2"
+      ],
+      "level": "A",
+      "purpose": "Make sure keyboard users are never stuck.",
+      "instructions": "Tab into each part of the page (including any dialog, media player or embedded content). Then try to Tab or press Esc to leave it again.",
+      "observe": "Focus always moves out again with Tab, Shift+Tab or Esc. You are never trapped.",
+      "evidence": "Name the part of the page that held focus, and what key failed to leave it.",
+      "advisory": false
+    },
+    {
+      "id": "focus-order",
+      "title": "Check the focus order makes sense",
+      "sc": [
+        "2.4.3"
+      ],
+      "level": "A",
+      "purpose": "Focus should follow the reading order people expect.",
+      "instructions": "Tab through the whole page and watch where focus lands each time.",
+      "observe": "The order matches the visual and reading order of the page. If focus jumps somewhere unexpected, note where from and to.",
+      "evidence": "Describe any jump: from which item to which item, and why it felt wrong.",
+      "advisory": false
+    },
+    {
+      "id": "focus-visible",
+      "title": "Check focus is easy to see",
+      "sc": [
+        "2.4.7",
+        "2.4.13"
+      ],
+      "level": "AA",
+      "purpose": "Keyboard users must always know where they are.",
+      "instructions": "Tab through the page and look for the focus indicator at every stop.",
+      "observe": "Every focusable thing shows a clear change when focused, at least 3 pixels thick and not cut off by anything. It is obvious where you are.",
+      "evidence": "Name any element whose focus was faint, thin, cut off, or invisible.",
+      "advisory": false
+    },
+    {
+      "id": "focus-not-obscured",
+      "title": "Check nothing covers the focused thing",
+      "sc": [
+        "2.4.11",
+        "2.4.12"
+      ],
+      "level": "AA",
+      "purpose": "Sticky headers, popups or ads can hide the focused control.",
+      "instructions": "Tab through the page at 400% zoom and with the page scrolled, watching for sticky bars or overlays.",
+      "observe": "The focused control is never covered at all. If something partly covers it, note whether the whole control was still readable.",
+      "evidence": "Name the sticky or fixed element that covered focus, if any.",
+      "advisory": false
+    },
+    {
+      "id": "dragging",
+      "title": "Check dragging has another way",
+      "sc": [
+        "2.5.7"
+      ],
+      "level": "AA",
+      "purpose": "Things you drag (sliders, sortable lists, maps) need a keyboard or button way too.",
+      "instructions": "Find anything you can drag. Try to do the same thing without dragging: with arrow keys, buttons, or a text field.",
+      "observe": "Every drag action has a single-pointer or keyboard alternative that works.",
+      "evidence": "Name the drag control and the alternative you used (or found missing).",
+      "advisory": false
+    },
+    {
+      "id": "target-size",
+      "title": "Check controls are big enough to hit",
+      "sc": [
+        "2.5.8"
+      ],
+      "level": "AA",
+      "purpose": "Small targets are hard for shaky hands.",
+      "instructions": "Look at buttons, links, checkboxes and small icon controls. Measure or estimate their clickable size.",
+      "observe": "Controls are at least 24 by 24 pixels, or have enough empty space around them. Note the ones that are smaller.",
+      "evidence": "List controls smaller than 24 px and their measured size.",
+      "advisory": false
+    },
+    {
+      "id": "reflow",
+      "title": "Check the page at 320 pixels",
+      "sc": [
+        "1.4.10"
+      ],
+      "level": "AA",
+      "purpose": "People zoom to 400%; the page must not force sideways scrolling.",
+      "instructions": "Zoom the page to 400% (or set the window to 320 pixels wide) and read down the whole page.",
+      "observe": "No sideways scrolling except for things like maps, tables or code. All text stays readable in one column.",
+      "evidence": "Note anything you had to scroll sideways to read, and how far it went.",
+      "advisory": false
+    },
+    {
+      "id": "reading-level",
+      "title": "Check the reading level",
+      "sc": [
+        "3.1.5"
+      ],
+      "level": "AAA",
+      "purpose": "Text should be understandable without secondary-school reading skills.",
+      "instructions": "Take the main body text (not legal or technical quotes). Check the style: short sentences, common words, explained terms. A rough tool check is a hint, not a proof.",
+      "observe": "Main text reads like plain language after removing unusual words. If a formulaic check is used, treat it as a hint only and record it as such.",
+      "evidence": "Record what you judged: paragraphs checked, and your plain-language reasoning.",
+      "advisory": false
+    },
+    {
+      "id": "link-purpose",
+      "title": "Check link text on its own",
+      "sc": [
+        "2.4.4",
+        "2.4.9"
+      ],
+      "level": "A",
+      "purpose": "A screen reader user often jumps link-to-link, out of context.",
+      "instructions": "Read every link text on its own, as a list. For links with unclear text like 'click here', read them again in context.",
+      "observe": "Most links make sense alone. For Level AAA, every link must make sense on its own, out of context.",
+      "evidence": "List link texts that only made sense in context, and the sentence that saved them.",
+      "advisory": false
+    },
+    {
+      "id": "headings-labels",
+      "title": "Check headings and labels describe their topic",
+      "sc": [
+        "2.4.6"
+      ],
+      "level": "AA",
+      "purpose": "Headings and labels set expectations for what follows.",
+      "instructions": "Look at each heading and form label. Does it tell you what the section or field is about, before you read further?",
+      "observe": "Headings and labels are clear and specific, not vague like 'More info'.",
+      "evidence": "List vague headings or labels you found.",
+      "advisory": false
+    },
+    {
+      "id": "location",
+      "title": "Check you can tell where you are",
+      "sc": [
+        "2.4.8"
+      ],
+      "level": "AAA",
+      "purpose": "People should know which page they are on.",
+      "instructions": "Land on a deep page (from a link or search). Can you tell what site and what page you are on, without hunting?",
+      "observe": "The page title, heading or breadcrumb tells you where you are.",
+      "evidence": "Note what cue you used, or what was missing.",
+      "advisory": false
+    },
+    {
+      "id": "sr-names-roles",
+      "title": "Check names and roles with a screen reader",
+      "sc": [
+        "4.1.2",
+        "2.5.3"
+      ],
+      "level": "A",
+      "purpose": "Buttons, fields and menus must say what they are and what they do.",
+      "instructions": "With a screen reader (NVDA, VoiceOver or Orca), go through every form control, button, link and custom widget. Listen to what it announces: name, role and value/state. For controls with a visible label, check the accessible name contains the visible text.",
+      "observe": "Every control announces a sensible name, its role, and its state (like 'checked'). Nothing says just 'button' with no name. Visible labels match what is announced.",
+      "evidence": "List controls with missing or wrong names, wrong roles, or states that did not change when used.",
+      "advisory": false
+    },
+    {
+      "id": "sr-live",
+      "title": "Check status messages are announced",
+      "sc": [
+        "4.1.3"
+      ],
+      "level": "AA",
+      "purpose": "Results and errors that appear should be spoken without moving focus.",
+      "instructions": "Do things that make messages appear (submit a form with errors, save settings). With a screen reader running, listen for the message.",
+      "observe": "The message is announced without the focus jumping somewhere unhelpful.",
+      "evidence": "Note each message: announced, silent, or focus moved unexpectedly.",
+      "advisory": false
+    },
+    {
+      "id": "captions-prerecorded",
+      "title": "Check captions on recorded video",
+      "sc": [
+        "1.2.2",
+        "1.2.5",
+        "1.2.3"
+      ],
+      "level": "A",
+      "purpose": "Deaf users need captions and, where needed, audio description.",
+      "instructions": "Play any recorded video. Turn captions on. Check they cover all speech and important sounds. If visual action is not clear from sound alone, check audio description.",
+      "observe": "Captions match the speech, identify speakers, and include key sounds. Audio description exists where needed.",
+      "evidence": "For each video: captions present and correct? description present or not needed?",
+      "advisory": false
+    },
+    {
+      "id": "captions-live",
+      "title": "Check live captions",
+      "sc": [
+        "1.2.4"
+      ],
+      "level": "AA",
+      "purpose": "Live events need live captions too.",
+      "instructions": "If the page offers a live stream or webinar, join and check captions appear in real time.",
+      "observe": "Captions appear and track the speaker closely enough to follow.",
+      "evidence": "Note the event, caption quality, and delay.",
+      "advisory": false
+    },
+    {
+      "id": "media-alt",
+      "title": "Check audio-only content has a transcript",
+      "sc": [
+        "1.1.1",
+        "1.2.1"
+      ],
+      "level": "A",
+      "purpose": "Audio clips and video-only clips need a text alternative.",
+      "instructions": "Find audio-only clips or silent video clips. Check a transcript or text description is offered.",
+      "observe": "Every audio-only clip has a transcript; every silent video has a text description.",
+      "evidence": "List clips missing alternatives.",
+      "advisory": false
+    },
+    {
+      "id": "timing-adjustable",
+      "title": "Check time limits can be turned off",
+      "sc": [
+        "2.2.1",
+        "2.2.3"
+      ],
+      "level": "A",
+      "purpose": "Session timeouts and carousels can cut people off mid-task.",
+      "instructions": "Find anything with a time limit: a session warning, carousel, quiz timer. Look for a way to turn it off, extend it, or adjust it.",
+      "observe": "Time limits can be turned off or extended, or the content warns you before time runs out. For Level AAA, no time limits at all.",
+      "evidence": "Name each time limit and what control you had over it.",
+      "advisory": false
+    },
+    {
+      "id": "timeouts-notice",
+      "title": "Check people are warned about timeouts",
+      "sc": [
+        "2.2.6"
+      ],
+      "level": "AAA",
+      "purpose": "Idle timeouts should be told to users who may lose work.",
+      "instructions": "Find session timeouts. Is the length of inactivity written anywhere, in words, before it happens?",
+      "observe": "The timeout is described in the text, including how long it is.",
+      "evidence": "Note what the page says about timeouts, or nothing.",
+      "advisory": false
+    },
+    {
+      "id": "pause-stop-hide",
+      "title": "Check moving things can be paused",
+      "sc": [
+        "2.2.2"
+      ],
+      "level": "A",
+      "purpose": "Carousels, tickers and blinking content distract and can be unreadable.",
+      "instructions": "Find anything that moves, blinks, scrolls or auto-plays for more than 5 seconds. Look for a pause, stop or hide control. (wa-a11y itself never animates.)",
+      "observe": "Every moving thing has a working pause, stop or hide control, or it stops within 5 seconds.",
+      "evidence": "Name each moving element and the control you found (or did not).",
+      "advisory": false
+    },
+    {
+      "id": "audio-control",
+      "title": "Check audio can be stopped",
+      "sc": [
+        "1.4.2"
+      ],
+      "level": "A",
+      "purpose": "Auto-playing audio fights with screen reader speech.",
+      "instructions": "Find audio that starts on its own. Is there a way to pause or stop it, or turn the volume down, without hunting for it?",
+      "observe": "No audio plays automatically, or there is a stop control right where you need it.",
+      "evidence": "Note the audio and the control you found.",
+      "advisory": false
+    },
+    {
+      "id": "errors-identified",
+      "title": "Check errors are explained in text",
+      "sc": [
+        "3.3.1",
+        "3.3.3"
+      ],
+      "level": "A",
+      "purpose": "People must know what went wrong and how to fix it.",
+      "instructions": "Fill forms wrong on purpose: leave required fields empty, type a wrong format. Read the error messages.",
+      "observe": "Each error says in words what went wrong and which field, not just a colour change. Where possible it says how to fix it.",
+      "evidence": "For each error: the message text, and whether it named the field and the fix.",
+      "advisory": false
+    },
+    {
+      "id": "labels-instructions",
+      "title": "Check forms say what they want",
+      "sc": [
+        "3.3.2",
+        "3.1.1",
+        "3.1.2"
+      ],
+      "level": "A",
+      "purpose": "Fields need labels, and unusual fields need instructions.",
+      "instructions": "Go through each form field. Is it labelled? If a field needs a format (like a date), are instructions or an example given? Check the page says its language, and marks foreign-language passages.",
+      "observe": "Every field has a visible label. Format hints are in text. Page language is set; other languages are marked.",
+      "evidence": "List unlabelled fields, missing hints, and any language marking you checked.",
+      "advisory": false
+    },
+    {
+      "id": "error-prevention",
+      "title": "Check important submissions can be undone",
+      "sc": [
+        "3.3.6"
+      ],
+      "level": "AAA",
+      "purpose": "For consequential actions, people need a chance to check before it is final.",
+      "instructions": "Submit something meaningful (a report, a delete). Can you review, undo, or confirm before it goes through?",
+      "observe": "Actions can be reviewed or confirmed before submission, or undone after.",
+      "evidence": "Note each action and what safety net it had.",
+      "advisory": false
+    },
+    {
+      "id": "redundant-entry",
+      "title": "Check you never retype what you already told the page",
+      "sc": [
+        "3.3.7"
+      ],
+      "level": "A",
+      "purpose": "Being asked to re-enter known information is a memory tax.",
+      "instructions": "Go through a multi-step form. Does it ask again for something you already entered or selected?",
+      "observe": "Nothing is asked twice that the page already knows, except for safety (like password confirmation).",
+      "evidence": "Note what was asked twice.",
+      "advisory": false
+    },
+    {
+      "id": "auth-accessible",
+      "title": "Check sign-in is not a puzzle",
+      "sc": [
+        "3.3.8",
+        "3.3.9",
+        "2.1.1"
+      ],
+      "level": "AA",
+      "purpose": "Memory tests and puzzles block some users from signing in at all.",
+      "instructions": "Try the sign-in flow. Look for cognitive tests: remember a password you typed? recognise pictures? solve a puzzle? Is there another way, or is none needed?",
+      "observe": "Sign-in does not require remembering, transcribing or solving anything cognitive. For Level AAA, there are no cognitive-function exceptions.",
+      "evidence": "Note what the sign-in asked for, and any alternative path.",
+      "advisory": false
+    },
+    {
+      "id": "consistent-help",
+      "title": "Check help is in the same place every time",
+      "sc": [
+        "3.2.6"
+      ],
+      "level": "A",
+      "purpose": "Help should live in one predictable spot across pages.",
+      "instructions": "Visit several pages. Look for the help/contact link each time.",
+      "observe": "Help appears in the same place on every page, or a link to it does. If there is no help, note that too.",
+      "evidence": "Describe where help was on each page you tried.",
+      "advisory": false
+    },
+    {
+      "id": "language-of-page",
+      "title": "Check the page's language is set",
+      "sc": [
+        "3.1.1"
+      ],
+      "level": "A",
+      "purpose": "Screen readers need to know the language to pronounce words.",
+      "instructions": "View the page source or use a tool: is the html tag's lang attribute set to the right language?",
+      "observe": "The page declares its language correctly.",
+      "evidence": "Record the lang value you saw.",
+      "advisory": false
+    },
+    {
+      "id": "images-of-text",
+      "title": "Check text is real text",
+      "sc": [
+        "1.4.5",
+        "1.4.9"
+      ],
+      "level": "AA",
+      "purpose": "Text in images cannot zoom, reflow, or be read aloud properly.",
+      "instructions": "Look for pictures that contain words (banners, buttons, screenshots of text).",
+      "observe": "Real text is used instead of images of words, except logos or where unavoidable. For Level AAA, no images of words at all.",
+      "evidence": "List images that contain words and what each says.",
+      "advisory": false
+    },
+    {
+      "id": "visual-presentation",
+      "title": "Check blocks of text are easy to read",
+      "sc": [
+        "1.4.8"
+      ],
+      "level": "AAA",
+      "purpose": "Long text blocks need good spacing and width for comfortable reading.",
+      "instructions": "Find blocks of text over 250 characters. Check: width under 80 characters, lines not justified, spacing between lines, and colours you can pick (if offered).",
+      "observe": "Text blocks are under 80 characters wide, left-aligned, with breathing room. Nothing is justified or cramped.",
+      "evidence": "Note what you measured and anything that failed.",
+      "advisory": false
+    }
+  ]
+}

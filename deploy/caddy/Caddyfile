@@ -1,0 +1,31 @@
+# wa-a11y
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# This file is part of wa-a11y.
+# Copyright (C) 2026 Kevin Miller (rockypod)
+# Modifications must retain this wa-a11y notice and document all changes
+# pursuant to AGPLv3 Section 5 and Section 7.
+
+{
+	# Security: no admin API; TLS ends at the proxy in front
+	admin off
+	auto_https off
+}
+
+:8080 {
+	# Security: refuse large bodies at the edge
+	request_body {
+		max_size 64KB
+	}
+	# Timeout must exceed WA_A11Y_WAIT_S (max 120 s), as must any proxy in front
+	reverse_proxy web:8000 {
+		transport http {
+			response_header_timeout 150s
+		}
+	}
+}
+
+# Health endpoint: container-internal, never published
+:8081 {
+	respond "ok" 200
+}

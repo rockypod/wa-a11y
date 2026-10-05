@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>FastPass: unreachable controls</title>
+  <style>:focus-visible { outline: 3px solid #000; }</style>
+</head>
+<body>
+  <main>
+    <h1>Unreachable controls</h1>
+    <button type="button">Reachable</button>
+    <!-- 2.1.1: widget role without tabindex fails; click-only and tabindex=-1 are cantTell. -->
+    <div role="button" id="fake">Unreachable button</div>
+    <span id="clicky" onclick="void 0">Click-only text</span>
+    <div role="button" tabindex="-1" id="roving">Removed from Tab order</div>
+  </main>
+</body>
+</html>

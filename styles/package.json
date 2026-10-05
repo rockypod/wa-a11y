@@ -1,0 +1,31 @@
+{
+  "name": "@wa-a11y/styles",
+  "description": "wa-a11y — WCAG 2.2 accessibility checker",
+  "license": "AGPL-3.0-or-later",
+  "author": "Kevin Miller (rockypod)",
+  "homepage": "https://github.com/rockypod/wa-a11y",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rockypod/wa-a11y.git"
+  },
+  "private": true,
+  "packageManager": "pnpm@11.5.2",
+  "engines": {
+    "node": ">=24 <27"
+  },
+  "scripts": {
+    "tokens": "node scripts/tokens.mjs",
+    "build": "node scripts/tokens.mjs && sass --quiet-deps --silence-deprecation=import --no-source-map --style=expanded --load-path=node_modules scss/main.scss dist/wa-a11y.full.css && node scripts/purge.mjs && node scripts/fonts.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "@fontsource-variable/atkinson-hyperlegible-next": "5.3.0",
+    "@fontsource-variable/lexend": "5.3.0",
+    "@fontsource/opendyslexic": "5.3.0",
+    "bootstrap": "^5.3.8",
+    "bootstrap-icons": "1.13.1",
+    "lightningcss": "^1.33.0",
+    "purgecss": "^8.0.0",
+    "sass": "^1.105.1"
+  }
+}

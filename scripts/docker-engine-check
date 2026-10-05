@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# wa-a11y
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# This file is part of wa-a11y.
+# Copyright (C) 2026 Kevin Miller (rockypod)
+# Modifications must retain this wa-a11y notice and document all changes
+# pursuant to AGPLv3 Section 5 and Section 7.
+set -uo pipefail
+ROOT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel 2>/dev/null)" || exit 2
+cd "$ROOT" || exit 2
+DIND=docker.io/library/docker:29.8.2-dind
+NAME=wa-a11y-dind-check
+TEST_PW="docker-engine-check-only-pw"
+cleanup() { podman rm -f "$NAME" >/dev/null 2>&1; }
+trap cleanup EXIT
+
+podman run -d --name "$NAME" --privileged -e DOCKER_TLS_CERTDIR= --entrypoint sh "$DIND" \
+  -c 'apk add --no-cache nftables >/dev/null && exec dockerd-entrypoint.sh dockerd --firewall-backend=nftables' >/dev/null
+for _ in $(seq 1 60); do podman exec "$NAME" docker info >/dev/null 2>&1 && break; sleep 2; done
+podman exec "$NAME" docker version --format 'Docker Engine {{.Server.Version}}' || exit 1
+
+git archive --format=tar HEAD | podman exec -i "$NAME" sh -c 'mkdir -p /src && tar -x -C /src'
+podman exec -i "$NAME" sh -s -- "$TEST_PW" <<'SCRIPT'
+set -u
+cd /src
+cp .env.example .env
+sed -i "s|^WA_A11Y_SESSION_SECRET=.*|WA_A11Y_SESSION_SECRET=$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')|" .env
+docker compose up -d --build >/tmp/up.log 2>&1 || { tail -20 /tmp/up.log; exit 1; }
+for s in scanner web caddy; do
+  for _ in $(seq 1 60); do [ "$(docker inspect -f '{{.State.Health.Status}}' wa-a11y-$s-1)" = healthy ] && break; sleep 2; done
+done
+printf '%s\n%s\n' "$1" "$1" | docker compose exec -T web /app/.venv/bin/python -c "
+import sys; from app import accounts
+pw = sys.stdin.readline().strip()
+from sqlmodel import Session; from app.store.db import get_engine
+with Session(get_engine()) as s: accounts.create_user(s, 'check@example.com', pw)
+" >/dev/null
+fail=0
+check() { if eval "$2" </dev/null; then echo "PASS  $1"; else echo "FAIL  $1"; fail=1; fi; }
+check "all services healthy" '[ "$(docker compose ps --format "{{.Status}}" | grep -c "(healthy)")" = 3 ]'
+check "redirect to sign-in without a session" 'wget -S -O /dev/null http://127.0.0.1:8580/ 2>&1 | grep -q "HTTP/1.1 303"'
+check "/healthz public" '[ "$(wget -q -O - http://127.0.0.1:8580/healthz)" = ok ]'
+check "sign-in page served" 'wget -q -O - http://127.0.0.1:8580/login | grep -q "<title>Sign in"'
+check "account created and stored hashed" 'docker compose exec -T web /app/.venv/bin/python -c "import sqlite3;h=sqlite3.connect(\"/data/wa_a11y.db\").execute(\"select password_hash from user\").fetchone()[0];assert h.startswith(\"\$argon2id\")"'
+check "every service non-root" '! docker compose exec -T caddy id -u | grep -qx 0 && ! docker compose exec -T web id -u | grep -qx 0 && ! docker compose exec -T scanner id -u | grep -qx 0'
+check "scanner unreachable from caddy" '! docker compose exec -T caddy wget -q -T 3 -O /dev/null http://scanner:3001/health'
+check "web reaches scanner" 'docker compose exec -T web python -c "import urllib.request;urllib.request.urlopen(\"http://scanner:3001/health\",timeout=3)"'
+check "no .env or project/ in images" '! docker compose exec -T web sh -c "ls /app/.env /app/project" >/dev/null 2>&1'
+check "DB migrated on the named volume" 'docker compose exec -T web /app/.venv/bin/python -c "import sqlite3;assert sqlite3.connect(\"/data/wa_a11y.db\").execute(\"select count(*) from alembic_version\").fetchone()[0]==1"'
+docker compose down -v >/dev/null 2>&1 </dev/null
+exit $fail
+SCRIPT

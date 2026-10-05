@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# wa-a11y
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# This file is part of wa-a11y.
+# Copyright (C) 2026 Kevin Miller (rockypod)
+# Modifications must retain this wa-a11y notice and document all changes
+# pursuant to AGPLv3 Section 5 and Section 7.
+set -euo pipefail
+ROOT="$(git rev-parse --show-toplevel)"
+HOOK_DIR="$ROOT/.githooks"
+HOOK="$HOOK_DIR/pre-push"
+mkdir -p "$HOOK_DIR"
+git config core.hooksPath .githooks
+if [[ -e "$HOOK" ]] && ! grep -q "scripts/check" "$HOOK"; then
+  echo "install-hooks: $HOOK exists and is not ours; not overwriting" >&2
+  exit 1
+fi
+chmod +x "$HOOK"
+echo "install-hooks: core.hooksPath=$(git config core.hooksPath); pre-push hook ready → $HOOK"

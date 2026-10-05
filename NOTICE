@@ -1,0 +1,68 @@
+wa-a11y
+Copyright (C) 2026 Kevin Miller (rockypod)
+
+This program is free software: you can redistribute it and/or modify it under the terms of the
+GNU Affero General Public License as published by the Free Software Foundation, either version 3
+of the License, or (at your option) any later version (SPDX: AGPL-3.0-or-later). See LICENSE.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
+even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+Affero General Public License for more details.
+
+===============================================================================================
+ADDITIONAL TERMS UNDER SECTION 7 OF THE GNU AGPLv3
+===============================================================================================
+
+The following additional terms are made under, and are limited to, Section 7(b) and Section 7(c)
+of the GNU Affero General Public License version 3. They supplement, and do not otherwise restrict,
+the rights granted by that License.
+
+1. Preservation of legal notices and author attributions — Section 7(b)
+
+   You must retain, in all copies and in every modified version of this material:
+
+   a. the "wa-a11y" name, the copyright notice "Copyright (C) 2026 Kevin Miller (rockypod)", and
+      this NOTICE file;
+   b. the SPDX license header present in each source file ("This file is part of wa-a11y …");
+   c. the attribution and license information shown in the program's Appropriate Legal Notices
+      (the "About and licence" page reachable from every page of the user interface), including
+      the statement that the program is wa-a11y, its copyright notice, the license, and a link to
+      the Corresponding Source.
+
+2. Marking of modified versions — Section 7(c)
+
+   Misrepresenting the origin of this material is prohibited. If you modify this material,
+   including as a state or federal agency, a contractor, or any other entity, you must mark the
+   modified version in reasonable ways as different from the original version:
+
+   a. Source files: each modified file must carry a prominent notice stating that you changed it
+      and the relevant date (as also required by Section 5(a)), and a short description of the
+      nature of the change.
+   b. User interface: the Appropriate Legal Notices of the modified version must prominently
+      display "Based on wa-a11y, modified by [Entity Name]", where [Entity Name] is the person or
+      organisation responsible for the modified version.
+   c. Documentation: the modified version's README (or equivalent primary documentation) must
+      carry the same statement, "Based on wa-a11y, modified by [Entity Name]".
+
+   You may not use the "wa-a11y" name in a way that suggests a modified version is the original
+   version or is endorsed by the copyright holder.
+
+===============================================================================================
+NETWORK USE — SECTION 13 OF THE GNU AGPLv3
+===============================================================================================
+
+If you modify this program and make it available to users over a network (for example, a hosted
+web instance), you must prominently offer all users interacting with it remotely an opportunity to
+receive the Corresponding Source of your modified version, at no charge, under this License.
+wa-a11y shows a source link on every page for this purpose; keep it, and point it at your modified
+source.
+
+===============================================================================================
+THIRD-PARTY COMPONENTS
+===============================================================================================
+
+wa-a11y bundles or depends on third-party software under their own licenses, including: axe-core
+(MPL-2.0), Siteimprove Alfa (MIT), Playwright (Apache-2.0), FastHTML (Apache-2.0), Bootstrap (MIT),
+Bootstrap Icons (MIT; Copyright (c) 2019-2024 The Bootstrap Authors; the few icons used are inlined
+as SVG), ChromaDB (Apache-2.0), SQLModel (MIT), and the fonts Atkinson Hyperlegible Next, Lexend and
+OpenDyslexic (SIL Open Font License 1.1; licence files ship with the fonts).

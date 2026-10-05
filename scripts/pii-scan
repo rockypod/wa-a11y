@@ -1,0 +1,184 @@
+#!/usr/bin/env python3
+# wa-a11y
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# This file is part of wa-a11y.
+# Copyright (C) 2026 Kevin Miller (rockypod)
+# Modifications must retain this wa-a11y notice and document all changes
+# pursuant to AGPLv3 Section 5 and Section 7.
+"""Privacy: reject private artifacts and personal data before they enter git."""
+
+from __future__ import annotations
+
+import argparse
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+
+ROOT = Path.cwd()
+MOCK_PARTS = ("tests", "fixtures", "mock")
+EMAIL = re.compile(r"(?<![\w.+-])([\w.+-]+)@([\w.-]+\.[A-Za-z]{2,})(?![\w.-])")
+SSN = re.compile(r"(?<!\d)(?!000|666|9\d\d)\d{3}-\d{2}-\d{4}(?!\d)")
+PHONE = re.compile(
+    r"(?<!\d)(?:\+?1[ .-]?)?(?:\([2-9]\d{2}\)|[2-9]\d{2})[ .-][2-9]\d{2}[ .-]\d{4}(?!\d)"
+    r"|(?<!\d)[2-9]\d{2}[-.]\d{4}(?!\d)"
+)
+LONG_ID = re.compile(r"(?<![0-9A-Fa-f])\d{9,}(?![0-9A-Fa-f])")
+
+SENTINELS = {
+    "BEGIN AI " + "TRANSCRIPT": "AI transcript marker",
+    "<anthropic_" + "thinking_process>": "AI reasoning marker",
+    "CONFIDENTIAL - " + "INTERNAL DEV ONLY": "private artifact marker",
+}
+
+
+def git(*args: str) -> bytes:
+    return subprocess.check_output(["git", *args], cwd=ROOT)
+
+
+def is_mock_fixture(path: str) -> bool:
+    return any(tuple(path.split("/"))[i : i + 3] == MOCK_PARTS for i in range(len(path.split("/")) - 2))
+
+
+def blocked_path(path: str) -> str | None:
+    parts = path.split("/")
+    lower = path.lower()
+    if is_mock_fixture(path):
+        return None
+    if parts and parts[0] in {".ai", "ai", "prompts", "scratch"}:
+        return f"blocked private path ({parts[0]}/)"
+    name = parts[-1]
+    if ".private." in lower or lower.endswith(".scratchpad") or "claude-transcript" in lower:
+        return "blocked private artifact path"
+    if any(word in lower for word in ("patient", "student", "caseload", "iep", "credential")):
+        return "blocked personal-data path"
+    if name.endswith((".csv", ".xlsx", ".sqlite", ".db")):
+        return "blocked data/database path"
+    return None
+
+
+def is_text_path(path: str) -> bool:
+    lower = path.lower()
+    if Path(path).name in {"LICENSE"} or lower.endswith((".lock", "-lock.yaml")):
+        return False
+    if lower.endswith((".woff", ".woff2", ".ttf", ".otf")):
+        return False
+    return True
+
+
+# A file that documents the sentinels names them on purpose; it opts out of that check only.
+SENTINEL_EXAMPLES = "pii-scan: sentinel-examples"
+
+
+def documents_sentinels(path: str) -> bool:
+    try:
+        return SENTINEL_EXAMPLES in (ROOT / path).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+
+
+def findings(path: str, text: str, sentinels: bool = True) -> list[tuple[int, str, str]]:
+    result: list[tuple[int, str, str]] = []
+    for lineno, line in enumerate(text.splitlines(), 1):
+        for marker, rule in SENTINELS.items():
+            if sentinels and marker in line:
+                result.append((lineno, rule, "remove the private transcript/artifact text"))
+        for match in SSN.finditer(line):
+            if match.group() != "123-45-6789":
+                result.append((lineno, "US Social Security number", "replace it with 123-45-6789 in test data"))
+        for match in EMAIL.finditer(line):
+            domain = match.group(2).lower()
+            if not (domain.endswith(("example.com", "example.org", "example.net")) or domain.endswith(".example") or domain == "localhost"):
+                result.append((lineno, "non-mock email address", "use an example.com address or remove the personal address"))
+        for match in PHONE.finditer(line):
+            if match.group() != "555-0100":
+                result.append((lineno, "US phone number", "replace it with 555-0100 in test data"))
+        for match in LONG_ID.finditer(line):
+            result.append((lineno, "long ID-like digit run", "remove it or use a short obviously fake value"))
+    return result
+
+
+def report(path: str, lineno: int, rule: str, fix: str) -> None:
+    print(f"{path}:{lineno}: {rule}; fix: {fix}")
+
+
+def scan_all() -> list[tuple[str, int, str, str]]:
+    paths = git("ls-files", "-z").decode().split("\0")
+    result: list[tuple[str, int, str, str]] = []
+    for path in filter(None, paths):
+        if (rule := blocked_path(path)):
+            result.append((path, 0, rule, "remove the file or place a fake fixture under tests/fixtures/mock/"))
+            continue
+        if not is_text_path(path):
+            continue
+        try:
+            text = (ROOT / path).read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        sentinels = SENTINEL_EXAMPLES not in text
+        result.extend((path, line, rule, fix) for line, rule, fix in findings(path, text, sentinels))
+    return result
+
+
+def staged_paths() -> list[str]:
+    return [p for p in git("diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z").decode().split("\0") if p]
+
+
+def staged_added_lines() -> list[tuple[str, str]]:
+    diff = git("diff", "--cached", "--no-ext-diff", "--unified=0", "--no-renames").decode(errors="replace")
+    path = None
+    current = 0
+    result: list[tuple[str, str]] = []
+    for line in diff.splitlines():
+        if line.startswith("+++ b/"):
+            path = line[6:]
+        elif line.startswith("@@"):
+            match = re.search(r"\+(\d+)(?:,(\d+))?", line)
+            if match:
+                current = int(match.group(1))
+        elif path and line.startswith("+") and not line.startswith("+++"):
+            result.append((path, f"{current}\0{line[1:]}"))
+            current += 1
+        elif path and line.startswith(" "):
+            current += 1
+    return result
+
+
+def scan_staged() -> list[tuple[str, int, str, str]]:
+    result: list[tuple[str, int, str, str]] = []
+    for path in staged_paths():
+        if (rule := blocked_path(path)):
+            result.append((path, 0, rule, "remove the file or place a fake fixture under tests/fixtures/mock/"))
+    for path, encoded in staged_added_lines():
+        if blocked_path(path) or not is_text_path(path):
+            continue
+        line_number, line = encoded.split("\0", 1)
+        for _, rule, fix in findings(path, line, not documents_sentinels(path)):
+            result.append((path, int(line_number), rule, fix))
+    return result
+
+
+def main() -> int:
+    global ROOT
+    ROOT = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], cwd=Path.cwd(), text=True).strip())
+    parser = argparse.ArgumentParser(description="scan tracked or staged files for private data")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--all", action="store_true", help="scan every tracked file")
+    group.add_argument("--staged", action="store_true", help="scan staged paths and added lines")
+    args = parser.parse_args()
+    results = scan_all() if args.all else scan_staged()
+    if results:
+        for path, line, rule, fix in results:
+            report(path, line, rule, fix)
+        print(f"pii-scan: FAIL ({len(results)} finding(s))", file=sys.stderr)
+        return 1
+    print("pii-scan: PASS")
+    return 0
+
+
+if __name__ == "__main__":
+    os.chdir(ROOT)
+    raise SystemExit(main())

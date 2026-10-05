@@ -1,0 +1,10 @@
+{
+    "health": {
+        "ignore": [
+            // Runs inside Chromium via page.evaluate(), invisible to c8; the self-scan is the test.
+            "selfscan/**",
+            // Runs inside Chromium via page.evaluate(), invisible to c8; test/fastpass.test.ts covers it.
+            "src/engines/fastpass-page.ts"
+        ]
+    }
+}

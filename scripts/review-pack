@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# wa-a11y
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# This file is part of wa-a11y.
+# Copyright (C) 2026 Kevin Miller (rockypod)
+# Modifications must retain this wa-a11y notice and document all changes
+# pursuant to AGPLv3 Section 5 and Section 7.
+# Security: the pack is built solely from git archive REF, never from the working tree
+set -uo pipefail
+
+ROOT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel 2>/dev/null)" \
+  || { echo "review-pack: not inside a git repo" >&2; exit 2; }
+cd "$ROOT" || { echo "review-pack: cannot cd to repo root" >&2; exit 2; }
+
+REF="${1:-}"
+if [[ -z "$REF" || "$REF" == -* ]]; then
+  echo "usage: scripts/review-pack TAG" >&2
+  exit 2
+fi
+if ! git rev-parse --verify --quiet "$REF^{commit}" >/dev/null; then
+  echo "review-pack: ref is not a commit-like ref: $REF" >&2
+  exit 2
+fi
+
+# Security: a ref with slashes never becomes a nested or escaping output path
+PACK_TAG="${REF//\//__}"
+PACK="$ROOT/releases/review-$PACK_TAG"
+if [[ -e "$PACK" ]]; then
+  echo "review-pack: output already exists; refusing to overwrite: $PACK" >&2
+  exit 1
+fi
+
+mkdir -p "$PACK/source"
+ARCHIVE="$PACK/source.tar"
+SOURCE="$PACK/source"
+failed=0
+
+if ! git archive --format=tar "$REF" >"$ARCHIVE" 2>"$PACK/archive.stderr"; then
+  echo "review-pack: git archive failed for $REF" >&2
+  sed 's/^/  /' "$PACK/archive.stderr" >&2
+  exit 1
+fi
+rm -f "$PACK/archive.stderr"
+tar -xf "$ARCHIVE" -C "$SOURCE" || { echo "review-pack: could not extract archive" >&2; exit 1; }
+
+find "$SOURCE" -type f -printf '%P\t%s\n' | LC_ALL=C sort >"$PACK/MANIFEST.tsv"
+sha256sum "$ARCHIVE" >"$PACK/ARCHIVE.sha256"
+
+run_report() {
+  local name="$1"; shift
+  if "$@" >"$PACK/$name" 2>&1; then
+    printf 'PASS\t%s\n' "$name"
+  else
+    local status=$?
+    printf 'FAIL\t%s\texit %s\n' "$name" "$status"
+    failed=1
+  fi
+}
+
+run_report VERIFY-EXPORT.txt scripts/verify-export "$REF"
+
+run_report GITLEAKS.txt gitleaks dir --no-banner --redact "$SOURCE"
+
+# Repository checks need a git index; build it in a throwaway copy so source/ stays the archive.
+CHECK="$(mktemp -d)"
+trap 'rm -rf "$CHECK"' EXIT
+if cp -a "$SOURCE/." "$CHECK/" && git -C "$CHECK" init -q && git -C "$CHECK" add -f -A; then
+  run_report PII-SCAN.txt env -C "$CHECK" ./scripts/pii-scan --all
+  run_report LICENSE-HEADERS.txt "$CHECK/scripts/license-headers"
+else
+  echo "review-pack: could not prepare extracted tree for repository checks" >"$PACK/PII-SCAN.txt"
+  echo "review-pack: could not prepare extracted tree for repository checks" >"$PACK/LICENSE-HEADERS.txt"
+  failed=1
+fi
+
+cat >"$PACK/SIGNOFF.template.md" <<EOF
+# wa-a11y release review sign-off
+
+- Reviewer: 
+- Date (YYYY-MM-DD): 
+- Tag/ref: $REF
+- Archive SHA-256: $(awk '{print $1}' "$PACK/ARCHIVE.sha256")
+
+## Review checks
+
+- [ ] VERIFY-EXPORT.txt reviewed
+- [ ] PII-SCAN.txt reviewed
+- [ ] GITLEAKS.txt reviewed
+- [ ] LICENSE-HEADERS.txt reviewed
+- [ ] MANIFEST.tsv and archive contents reviewed
+
+Reviewer notes:
+
+Signature/approval:
+EOF
+
+if (( failed )); then
+  echo "review-pack: FAIL — inspect reports in $PACK" >&2
+  exit 1
+fi
+echo "review-pack: PASS — $PACK"

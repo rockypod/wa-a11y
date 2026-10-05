@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>FastPass: keyboard pass</title>
+  <style>
+    body { font-family: sans-serif; color: #000; background: #fff; }
+    a, button, input, [tabindex] { outline: none; }
+    a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 3px solid #000; outline-offset: 2px; }
+    button.ua, button.ua:focus-visible { outline: revert; }
+  </style>
+</head>
+<body>
+  <!-- Every stop is reachable in reading order with a visible indicator: no findings at AAA. -->
+  <header><a href="#main">Skip to content</a> <a href="#about">About</a></header>
+  <main id="main">
+    <h1>Keyboard pass</h1>
+    <label for="name">Name</label> <input id="name">
+    <button type="button">Save</button>
+    <button type="button" class="ua">Default browser focus ring</button>
+    <div role="button" tabindex="0">Custom button that takes focus</div>
+    <p id="about"><a href="#main">Back to top</a></p>
+  </main>
+</body>
+</html>

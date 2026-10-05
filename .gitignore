@@ -1,0 +1,49 @@
+
+# Dev memory
+.memory/
+.memory-cache/
+graphify-out/
+.graphify/
+.graphify-staging-*/
+.graphifyignore
+openwiki/
+.github/workflows/openwiki-update.yml
+
+# Agent config
+.mcp.json
+.claude/
+.codex/
+.agents/
+opencode.json
+AGENTS.md
+CLAUDE.md
+
+# Caches
+.ruff_cache/
+.fallow/
+target/
+.pytest_cache/
+
+# Build output
+node_modules/
+.venv/
+__pycache__/
+dist/
+coverage/
+
+# Releases
+releases/
+
+# Secrets
+data/
+chroma/
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+!.env.example
+.sesskey
+
+# Generated
+styles/scss/_tokens.generated.scss

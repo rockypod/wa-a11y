@@ -1,0 +1,313 @@
+#!/usr/bin/env bash
+# wa-a11y
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# This file is part of wa-a11y.
+# Copyright (C) 2026 Kevin Miller (rockypod)
+# Modifications must retain this wa-a11y notice and document all changes
+# pursuant to AGPLv3 Section 5 and Section 7.
+# Usage: scripts/check [check ...]   (default: all)
+
+set -uo pipefail
+
+# Fail closed: never run checks outside the repo.
+ROOT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel 2>/dev/null)" || { echo "check: not inside a git repo" >&2; exit 2; }
+[[ -n "$ROOT" ]] && cd "$ROOT" || { echo "check: cannot cd to repo root '$ROOT'" >&2; exit 2; }
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+ALL=(license-headers manifests pii-scan verify-export ruff pytest styles css-gates scanner-test selfscan aria pip-audit pnpm-audit typecheck fallow clippy ignore-guard ignore-sync gitleaks)
+CHECKS=("${@:-${ALL[@]}}")
+
+declare -a RESULTS=()
+FAILED=0
+
+pass() { RESULTS+=("PASS  $1"); }
+skip() { RESULTS+=("SKIP  $1 — $2"); }
+fail() { RESULTS+=("FAIL  $1${2:+ — $2}"); FAILED=1; }
+
+need() { command -v "$1" >/dev/null 2>&1; }
+
+run() {
+  local name="$1"; shift
+  echo "── $name: $*"
+  if "$@"; then pass "$name"; else fail "$name"; fi
+}
+
+has_web()     { [[ -f web/pyproject.toml ]]; }
+has_node()    { [[ -f pnpm-lock.yaml ]]; }
+has_scanner() { [[ -f scanner/package.json ]]; }
+
+check_license_headers() {
+  # AGPLv3: every source file carries the SPDX header
+  run license-headers scripts/license-headers
+}
+
+check_manifests() {
+  # AGPLv3: every manifest declares AGPL-3.0-or-later; package.json is private
+  echo "── manifests: licence + private"
+  if python3 - <<'PY'
+import json, pathlib, subprocess, sys, tomllib
+bad = []
+files = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+                       capture_output=True, text=True, check=True).stdout.split()
+for f in files:
+    p = pathlib.Path(f)
+    if p.name == "package.json":
+        d = json.loads(p.read_text())
+        if d.get("license") != "AGPL-3.0-or-later" or d.get("private") is not True:
+            bad.append(f)
+    elif p.name == "pyproject.toml":
+        d = tomllib.loads(p.read_text())
+        if d.get("project", {}).get("license") != "AGPL-3.0-or-later":
+            bad.append(f)
+for f in bad:
+    print(f"  ✗ {f}: needs license AGPL-3.0-or-later (and \"private\": true for package.json)")
+sys.exit(1 if bad else 0)
+PY
+  then pass manifests; else fail manifests; fi
+}
+
+check_ruff() {
+  has_web || { skip ruff "no web/pyproject.toml yet"; return; }
+  need uv || { fail ruff "uv not installed"; return; }
+  echo "── ruff: lint + format check (web/)"
+  if uv run --directory web ruff check . && uv run --directory web ruff format --check .; then
+    pass ruff
+  else
+    fail ruff
+  fi
+}
+
+check_pytest() {
+  has_web || { skip pytest "no web/pyproject.toml yet"; return; }
+  [[ -d web/tests ]] || { skip pytest "no web/tests yet"; return; }
+  need uv || { fail pytest "uv not installed"; return; }
+  run pytest uv run --directory web pytest -q
+}
+
+check_styles() {
+  [[ -f styles/tokens.json ]] || { skip styles "no styles/tokens.json yet"; return; }
+  need pnpm || { fail styles "pnpm not installed"; return; }
+  echo "── styles: build theme (tokens → Sass → purge) + token contrast tests"
+  if pnpm -C styles build && pnpm -C styles test; then pass styles; else fail styles; fi
+}
+
+check_css_gates() {
+  # Forbidden CSS patterns (WCAG 2.2 AAA, no-JS policy)
+  [[ -d styles/scss ]] || { skip css-gates "no styles/scss yet"; return; }
+  echo "── css-gates: forbidden CSS patterns (styles/scss, web/app)"
+  local bad=0 code="$TMP/scss-code.txt"
+  grep -vhE '^[[:space:]]*//' styles/scss/main.scss | sed 's#[[:space:]]//.*$##' > "$code"
+  local src=("$code")
+  _gate() {
+    local what="$1" pat="$2"; shift 2
+    local hits; hits="$(grep -nE "$pat" "$@" 2>/dev/null)"
+    if [[ -n "$hits" ]]; then echo "  ✗ $what"; echo "$hits" | sed 's/^/      /'; bad=1; fi
+  }
+  _gate "justified text (1.4.8)" 'text-align:[[:space:]]*justify' "${src[@]}"
+  _gate "focus outline removed outside :focus:not(:focus-visible)" 'outline:[[:space:]]*(none|0)' \
+    <(grep -vF ':focus:not(:focus-visible)' "${src[@]}" | grep -vE '^[[:space:]]*outline: none;$')
+  _gate "opacity on content (contrast)" '(^|[;{[:space:]])opacity[[:space:]]*:' "${src[@]}"
+  _gate "floating labels (placeholder-as-label)" 'form-floating' "${src[@]}" $(find web/app -name '*.py')
+  _gate "Bootstrap JS bundle (no-JS policy)" 'bootstrap\.bundle|bootstrap\.min\.js|bootstrap/dist/js' \
+    "${src[@]}" $(find web/app -name '*.py') web/Dockerfile
+  local visited; visited="$(grep -oE ':visited' "${src[@]}" | wc -l)"
+  if [[ "$visited" -ne 2 ]] || ! grep -qE 'a:visited:hover' "${src[@]}"; then
+    echo "  ✗ visited-link styling: expected only the teal reset (a:visited, a:visited:hover), found $visited :visited selector(s)"
+    bad=1
+  fi
+  # Privacy: the provenance banner is never hidden, on screen or in print
+  _gate "provenance banner hidden (privacy rule)" '\.wa-provenance[^{]*\{[^}]*(display:[[:space:]]*none|visibility:[[:space:]]*hidden)' \
+    <(tr '\n' ' ' < "$code" | sed 's/}/}\n/g')
+  if ! tr '\n' ' ' < "$code" | grep -qE '@media print[^@]*\.wa-provenance[^}]*display:[[:space:]]*block !important'; then
+    echo "  ✗ provenance banner must be forced visible in @media print (privacy rule)"; bad=1
+  fi
+  if (( bad )); then fail css-gates; else pass css-gates; fi
+}
+
+check_pii_scan() {
+  # Privacy: no personal data or private artifacts in tracked files
+  echo "── pii-scan: personal data and private artifacts in tracked files"
+  if python3 scripts/pii-scan --all; then pass pii-scan; else fail pii-scan; fi
+}
+
+check_verify_export() {
+  # Public archive carries no internal paths
+  echo "── verify-export: internal files excluded from git archive HEAD"
+  if scripts/verify-export; then pass verify-export; else fail verify-export; fi
+}
+
+check_selfscan() {
+  [[ -x scripts/selfscan ]] || { skip selfscan "no scripts/selfscan yet"; return; }
+  if [[ "${WA_A11Y_SKIP_SELFSCAN:-0}" == "1" ]]; then skip selfscan "WA_A11Y_SKIP_SELFSCAN=1 (never skip before a push)"; return; fi
+  # Own pages meet WCAG 2.2 AAA (axe-core and Alfa)
+  run selfscan scripts/selfscan
+}
+
+check_aria() {
+  # Accessibility-tree route checks, JS disabled
+  [[ -x scripts/sr-check ]] || { skip aria "no scripts/sr-check yet"; return; }
+  if [[ "${WA_A11Y_SKIP_SELFSCAN:-0}" == "1" ]]; then skip aria "WA_A11Y_SKIP_SELFSCAN=1 (never skip before a push)"; return; fi
+  run aria scripts/sr-check
+}
+
+check_scanner_test() {
+  has_scanner || { skip scanner-test "no scanner/ yet"; return; }
+  [[ -d scanner/test ]] || { skip scanner-test "no scanner/test yet"; return; }
+  need pnpm || { fail scanner-test "pnpm not installed"; return; }
+  run scanner-test pnpm -C scanner test
+}
+
+check_pip_audit() {
+  has_web || { skip pip-audit "no web/pyproject.toml yet"; return; }
+  [[ -f web/uv.lock ]] || { fail pip-audit "web/uv.lock missing"; return; }
+  need uv || { fail pip-audit "uv not installed"; return; }
+  echo "── pip-audit: locked runtime deps of web/"
+  # Security: an expired allowlist row fails the check
+  local ignores=() today id expires
+  today="$(date +%F)"
+  while IFS='|' read -r _ id _ _ _ expires _; do
+    id="$(echo "$id" | xargs)"; expires="$(echo "$expires" | xargs)"
+    [[ "$id" =~ ^(PYSEC|GHSA|CVE)- ]] || continue
+    if [[ "$expires" < "$today" ]]; then
+      fail pip-audit "allowlist entry $id expired on $expires — re-review it"; return
+    fi
+    ignores+=(--ignore-vuln "$id")
+  done < scripts/audit-allowlist.md
+  (( ${#ignores[@]} )) && echo "   allowlisted: $(( ${#ignores[@]} / 2 )) advisory(ies) (see scripts/audit-allowlist.md)"
+  if uv export --directory web --frozen --no-dev --no-hashes --no-emit-project -o "$TMP/req.txt" >/dev/null \
+     && uvx pip-audit --strict --disable-pip --no-deps "${ignores[@]}" -r "$TMP/req.txt"; then
+    pass pip-audit
+  else
+    fail pip-audit
+  fi
+}
+
+check_pnpm_audit() {
+  has_node || { skip pnpm-audit "no pnpm-lock.yaml yet"; return; }
+  need pnpm || { fail pnpm-audit "pnpm not installed"; return; }
+  run pnpm-audit pnpm audit --prod --audit-level high
+}
+
+check_typecheck() {
+  has_scanner || { skip typecheck "no scanner/ yet"; return; }
+  need pnpm || { fail typecheck "pnpm not installed"; return; }
+  run typecheck pnpm -C scanner typecheck
+}
+
+check_fallow() {
+  has_scanner || { skip fallow "no scanner/ yet"; return; }
+  need fallow || { fail fallow "fallow not installed"; return; }
+  echo "── fallow: dead-code + dupes + health + audit (scanner/)"
+  local cov=()
+  [[ -f scanner/coverage/coverage-final.json ]] && cov=(--coverage "$ROOT/scanner/coverage/coverage-final.json")
+  if fallow --root scanner dead-code && fallow --root scanner dupes \
+     && fallow --root scanner health "${cov[@]}" && fallow --root scanner audit; then
+    pass fallow
+  else
+    fail fallow
+  fi
+}
+
+check_clippy() {
+  [[ -f Cargo.toml ]] || { skip clippy "no Rust in repo"; return; }
+  need cargo || { fail clippy "cargo not installed"; return; }
+  run clippy cargo clippy --all-targets -- -D warnings
+}
+
+check_ignore_guard() {
+  echo "── ignore-guard: tracked files that .gitignore excludes"
+  local hits
+  hits="$(git ls-files -ci --exclude-standard)"
+  if [[ -z "$hits" ]]; then
+    pass ignore-guard
+  else
+    printf '%s\n' "$hits"
+    fail ignore-guard "tracked-but-ignored files (git rm --cached them)"
+  fi
+}
+
+check_ignore_sync() {
+  # Every .gitignore pattern is also excluded from container build contexts
+  echo "── ignore-sync: .gitignore ⊆ .dockerignore"
+  local missing=() line pat
+  while IFS= read -r line; do
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    local neg=""
+    [[ "$line" == !* ]] && { neg="!"; line="${line#!}"; }
+    pat="${line#/}"
+    if ! grep -qxF -e "$neg$pat" -e "$neg**/$pat" .dockerignore; then
+      missing+=("$neg$line")
+    fi
+  done < .gitignore
+  if (( ${#missing[@]} == 0 )); then
+    pass ignore-sync
+  else
+    printf '  missing in .dockerignore: %s\n' "${missing[@]}"
+    fail ignore-sync "${#missing[@]} .gitignore pattern(s) not in .dockerignore"
+  fi
+}
+
+check_gitleaks() {
+  need gitleaks || { fail gitleaks "gitleaks not installed (sudo pacman -S gitleaks)"; return; }
+  echo "── gitleaks: history + staged + unstaged + untracked (git-ignored files never scanned)"
+  # Secrets: git-aware scans never read git-ignored files such as .env
+  local ok=1
+  gitleaks git --no-banner --redact .                       || ok=0
+  gitleaks git --pre-commit --staged --no-banner --redact . || ok=0
+  gitleaks git --pre-commit --no-banner --redact .          || ok=0
+  # Fail closed if listing or copying untracked files is incomplete
+  local list="$TMP/untracked.lst" want got
+  if ! git ls-files -z --others --exclude-standard > "$list"; then
+    fail gitleaks "could not list untracked files"; return
+  fi
+  if [[ -s "$list" ]]; then
+    mkdir -p "$TMP/untracked"
+    if ! xargs -0 cp --parents -t "$TMP/untracked" -- < "$list"; then
+      fail gitleaks "could not stage untracked files for scanning"; return
+    fi
+    want="$(tr -cd '\0' < "$list" | wc -c)"
+    got="$(find "$TMP/untracked" -type f | wc -l)"
+    if [[ "$want" != "$got" ]]; then
+      fail gitleaks "untracked copy incomplete ($got of $want files)"; return
+    fi
+    gitleaks dir --no-banner --redact "$TMP/untracked" || ok=0
+  fi
+  if (( ok )); then pass gitleaks; else fail gitleaks; fi
+}
+
+for c in "${CHECKS[@]}"; do
+  case "$c" in
+    license-headers) check_license_headers ;;
+    manifests)    check_manifests ;;
+    pii-scan)     check_pii_scan ;;
+    verify-export) check_verify_export ;;
+    ruff)         check_ruff ;;
+    pytest)       check_pytest ;;
+    styles)       check_styles ;;
+    css-gates)    check_css_gates ;;
+    selfscan)     check_selfscan ;;
+    aria)         check_aria ;;
+    scanner-test) check_scanner_test ;;
+    pip-audit)    check_pip_audit ;;
+    pnpm-audit)   check_pnpm_audit ;;
+    typecheck)    check_typecheck ;;
+    fallow)       check_fallow ;;
+    clippy)       check_clippy ;;
+    ignore-guard) check_ignore_guard ;;
+    ignore-sync)  check_ignore_sync ;;
+    gitleaks)     check_gitleaks ;;
+    *)            fail "$c" "unknown check (valid: ${ALL[*]})" ;;
+  esac
+done
+
+echo
+echo "══ wa-a11y checks ══"
+printf '%s\n' "${RESULTS[@]}"
+if (( FAILED )); then
+  echo "RESULT: FAIL"
+  exit 1
+fi
+echo "RESULT: PASS"

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>FastPass: no focus indicator</title>
+  <style>
+    body { color: #000; background: #fff; }
+    :focus-visible { outline: 3px solid #000; }
+    /* 2.4.7 failure: this button looks exactly the same with and without focus. */
+    #hidden-focus, #hidden-focus:focus, #hidden-focus:focus-visible { outline: none; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>No focus indicator</h1>
+    <button type="button" id="ok">Has an outline</button>
+    <button type="button" id="hidden-focus">No outline</button>
+  </main>
+</body>
+</html>
