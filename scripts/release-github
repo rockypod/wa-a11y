@@ -91,6 +91,10 @@ scripts/check || { echo "release-github: scripts/check failed" >&2; exit 1; }
 scripts/verify-export "$TAG" || { echo "release-github: verify-export failed" >&2; exit 1; }
 
 OUT="$ROOT/releases/github-$PACK_TAG"
+# A previous dry run of the same tag may be replaced; anything else is refused.
+if [[ -e "$OUT/.dry-run" ]]; then
+  rm -rf "$OUT"
+fi
 if [[ -e "$OUT" ]]; then
   echo "release-github: output already exists; refusing to overwrite: $OUT" >&2
   exit 1
@@ -122,6 +126,7 @@ echo "release-github: local orphan repository $LOCAL_REPO"
 git -C "$LOCAL_REPO" ls-tree -r --name-only HEAD | sed 's/^/  /'
 
 if [[ "$MODE" == --dry-run ]]; then
+  : >"$OUT/.dry-run"
   echo "release-github: dry-run complete; nothing was published"
   exit 0
 fi
@@ -138,7 +143,30 @@ case "$answer" in
   y|Y|yes|YES) ;;
   *) echo "release-github: publish cancelled"; exit 1 ;;
 esac
-git -C "$LOCAL_REPO" push "$REMOTE" "HEAD:refs/heads/main" "refs/tags/$TAG:refs/tags/$TAG" || {
+RELEASER="wa-a11y release builder"
+# The public main holds release commits only: each release is built on the previous one, so
+# publishing is a fast-forward (never a force-push). Refuse anything this script did not make.
+if git -C "$LOCAL_REPO" ls-remote --exit-code --tags "$REMOTE" "refs/tags/$TAG" >/dev/null 2>&1; then
+  echo "release-github: $TAG already exists on $REMOTE; refusing" >&2; exit 1
+fi
+if git -C "$LOCAL_REPO" ls-remote --exit-code --heads "$REMOTE" main >/dev/null 2>&1; then
+  git -C "$LOCAL_REPO" fetch -q "$REMOTE" main || { echo "release-github: fetch failed" >&2; exit 1; }
+  if git -C "$LOCAL_REPO" log --format='%an' FETCH_HEAD | grep -vqx "$RELEASER"; then
+    echo "release-github: remote main has commits not made by this script; refusing" >&2; exit 1
+  fi
+  parent="$(git -C "$LOCAL_REPO" rev-parse FETCH_HEAD)"
+  commit="$(GIT_AUTHOR_NAME="$RELEASER" GIT_AUTHOR_EMAIL=release-builder@localhost \
+    GIT_COMMITTER_NAME="$RELEASER" GIT_COMMITTER_EMAIL=release-builder@localhost \
+    git -C "$LOCAL_REPO" commit-tree "HEAD^{tree}" -p "$parent" \
+    -m "release: wa-a11y $TAG [AGPLv3 Corresponding Source]")" || {
+    echo "release-github: release commit failed" >&2; exit 1;
+  }
+  git -C "$LOCAL_REPO" reset -q --soft "$commit"
+  git -C "$LOCAL_REPO" -c user.name="$RELEASER" -c user.email=release-builder@localhost \
+    tag -f -a "$TAG" -m "wa-a11y $TAG [AGPLv3 Corresponding Source]" >/dev/null
+fi
+# Atomic: the branch and the tag land together or not at all.
+git -C "$LOCAL_REPO" push --atomic "$REMOTE" "HEAD:refs/heads/main" "refs/tags/$TAG:refs/tags/$TAG" || {
   echo "release-github: publish failed" >&2; exit 1;
 }
 echo "release-github: published $TAG"

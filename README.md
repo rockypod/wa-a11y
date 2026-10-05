@@ -8,7 +8,7 @@ WA-A11y's own pages meet **WCAG 2.2 AAA** (checked on every change by both tools
 [Quality gates](#quality-gates)). Automated tools cannot find every problem: results always list
 what a person still needs to check.
 
-> **Status:** v0.2.1 — Milestone 2: Accessibility Insights-style checks, screen-reader structure checks,
+> **Status:** v0.2.2 — Milestone 2: Accessibility Insights-style checks, screen-reader structure checks,
 > guided manual checklist.
 
 ## What it does
@@ -34,21 +34,83 @@ what a person still needs to check.
 Confirm your obligations with your organization's accessibility coordinator — this is not legal
 advice.
 
-## Quick start
+## Install
 
-```bash
-cp .env.example .env && sed -i "s/^WA_A11Y_SESSION_SECRET=.*/WA_A11Y_SESSION_SECRET=$(openssl rand -hex 32)/" .env
-docker compose up -d --build        # or: podman-compose up -d --build
+These steps work on Windows, Mac and Linux. They take about 15 minutes, most of it waiting for
+downloads. You only type a few short commands; each step says what you should see.
+
+### 1. Install Docker Desktop
+
+wa-a11y runs inside Docker, a free program that keeps it separate from the rest of your computer.
+
+1. Go to <https://www.docker.com/products/docker-desktop/>, download Docker Desktop for your
+   computer, and install it like any other program.
+2. Open Docker Desktop and wait until it says **Engine running** (bottom left).
+
+### 2. Download wa-a11y
+
+1. On this page, click the green **Code** button, then **Download ZIP**.
+2. Unzip it (double-click the file). You get a folder called `wa-a11y-main`. Move it somewhere
+   easy to find, such as your Documents folder.
+
+### 3. Open a terminal in that folder
+
+A terminal is a window where you type commands.
+
+- **Windows:** open the `wa-a11y-main` folder, click the address bar at the top, type
+  `powershell`, and press Enter.
+- **Mac:** open **Terminal** (Applications → Utilities). Type `cd ` (with a space), drag the
+  `wa-a11y-main` folder into the window, and press Enter.
+- **Linux:** right-click inside the folder and choose **Open in Terminal**.
+
+### 4. Create the settings file
+
+Copy and paste this line, then press Enter:
+
+- **Windows:** `copy .env.example .env`
+- **Mac and Linux:** `cp .env.example .env`
+
+Nothing appears; that is normal. The default settings work as they are.
+
+### 5. Start wa-a11y
+
+```
+docker compose up -d --build
+```
+
+The first time, this downloads and builds everything and can take 5–10 minutes. It is finished
+when you see three lines ending in **Started** (or **Healthy**). Later starts take seconds.
+
+### 6. Create your account
+
+Replace `you@example.com` with your email address:
+
+```
 docker compose exec web /app/.venv/bin/python -m app.accounts create you@example.com --admin
 ```
 
-Open <http://127.0.0.1:8580/> and sign in. Full guide (HTTPS, upgrades, backups): [INSTALL.md](INSTALL.md).
+It asks for a password twice (at least 12 characters). Nothing shows while you type; that is
+normal.
+
+### 7. Open wa-a11y
+
+Go to <http://127.0.0.1:8580/> in your web browser and sign in with your email and password.
+wa-a11y only runs on your own computer; nobody else can reach it.
+
+### Everyday use
+
+- **Stop:** `docker compose stop` (in the same folder). **Start again:** `docker compose start`.
+- **Something went wrong?** Check that Docker Desktop shows **Engine running**, then run step 5
+  again.
+
+Installing for a team on a server, HTTPS, upgrades and backups: see [INSTALL.md](INSTALL.md).
+It also has a ready-made prompt to let GitHub Copilot CLI walk you through the install.
 
 ## Configuration (`.env`)
 
 | Setting | Default | Purpose |
 |---|---|---|
-| `WA_A11Y_SESSION_SECRET` | — (required) | Signs the session cookie |
+| `WA_A11Y_SESSION_SECRET` | empty (generated) | Leave empty: wa-a11y creates and keeps a strong session secret in the data volume. |
 | `WA_A11Y_BIND` / `WA_A11Y_PORT` | `127.0.0.1` / `8580` | Where the site is published |
 | `WA_A11Y_BASE_PATH` | empty | Path prefix when served behind another proxy, e.g. `/wa-a11y` |
 | `WA_A11Y_ALLOW_HTTP` | off | Allow `http://` targets (default: `https://` only) |

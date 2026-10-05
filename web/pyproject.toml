@@ -8,7 +8,7 @@
 
 [project]
 name = "wa-a11y-web"
-version = "0.2.1"
+version = "0.2.2"
 description = "WA-A11y web app (FastHTML)"
 license = "AGPL-3.0-or-later"
 authors = [{ name = "Kevin Miller (rockypod)" }]

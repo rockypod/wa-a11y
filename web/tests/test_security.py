@@ -129,3 +129,67 @@ def test_queue_cap_holds_under_concurrency(monkeypatch):
     for t in threads:
         t.join()
     assert results.count("ok") == 5 and results.count("full") == 15
+
+
+def test_session_secret_is_generated_when_missing_or_placeholder(monkeypatch, tmp_path):
+    from app import main
+
+    monkeypatch.setenv("WA_A11Y_DB_URL", f"sqlite:///{tmp_path}/wa_a11y.db")
+    for value in ("", "change-me"):
+        monkeypatch.setenv("WA_A11Y_SESSION_SECRET", value)
+        first = main._session_secret()
+        assert len(first) == 64 and first == main._session_secret()  # stable across restarts
+    stored = tmp_path / "session-secret"
+    assert stored.read_text() == first and oct(stored.stat().st_mode & 0o777) == "0o600"
+
+
+def test_session_secret_reuses_valid_persisted_file(monkeypatch, tmp_path):
+    from app import main
+
+    monkeypatch.setenv("WA_A11Y_DB_URL", f"sqlite:///{tmp_path}/wa_a11y.db")
+    monkeypatch.setenv("WA_A11Y_SESSION_SECRET", "")
+    stored = tmp_path / "session-secret"
+    value = "a" * 64
+    stored.write_text(value)
+    stored.chmod(0o600)
+
+    assert main._session_secret() == value
+
+
+def test_session_secret_regenerates_empty_or_short_file(monkeypatch, tmp_path):
+    from app import main
+
+    monkeypatch.setenv("WA_A11Y_DB_URL", f"sqlite:///{tmp_path}/wa_a11y.db")
+    monkeypatch.setenv("WA_A11Y_SESSION_SECRET", "")
+    stored = tmp_path / "session-secret"
+    for invalid in ("", "a" * 63):
+        stored.write_text(invalid)
+        stored.chmod(0o600)
+        value = main._session_secret()
+        assert len(value) == 64 and value != invalid
+        assert stored.read_text() == value
+
+
+def test_session_secret_refuses_open_permissions(monkeypatch, tmp_path):
+    import pytest
+
+    from app import main
+
+    monkeypatch.setenv("WA_A11Y_DB_URL", f"sqlite:///{tmp_path}/wa_a11y.db")
+    monkeypatch.setenv("WA_A11Y_SESSION_SECRET", "")
+    stored = tmp_path / "session-secret"
+    stored.write_text("a" * 64)
+    stored.chmod(0o640)
+
+    with pytest.raises(RuntimeError, match="permissions are too open"):
+        main._session_secret()
+
+
+def test_short_session_secret_is_refused(monkeypatch):
+    import pytest
+
+    from app import main
+
+    monkeypatch.setenv("WA_A11Y_SESSION_SECRET", "too-short")
+    with pytest.raises(RuntimeError, match="too short"):
+        main._session_secret()

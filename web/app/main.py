@@ -10,6 +10,9 @@
 
 import mimetypes
 import os
+import re
+import secrets
+import stat
 from pathlib import Path
 from urllib.parse import quote
 
@@ -30,6 +33,7 @@ from app.jobs import Runner, runner_enabled
 from app.security import SecurityHeaders
 from app.settings import COOKIE, Display
 from app.statement import register as register_statement
+from app.store.db import db_url as db_url_setting
 from app.store.db import get_engine
 from app.theme import fonts_dir, theme_css
 from app.ui import AUTH_COOKIE, current_path, current_session, current_user, u
@@ -37,14 +41,65 @@ from app.ui import AUTH_COOKIE, current_path, current_session, current_user, u
 SECRET_ENV = "WA_A11Y_SESSION_SECRET"  # noqa: S105 — env var *name*, not a secret
 
 
+PLACEHOLDER_SECRETS = {"", "change-me"}
+MIN_SECRET_LEN = 32
+PERSISTED_SECRET = re.compile(r"[0-9a-f]{64}\Z")
+
+
+def _secret_file() -> Path:
+    db_url = db_url_setting()
+    if not db_url.startswith("sqlite:///"):
+        raise RuntimeError(f"Set {SECRET_ENV} to a long random value (32+ characters).")
+    return Path(db_url.removeprefix("sqlite:///")).parent / "session-secret"
+
+
 def _session_secret() -> str:
-    secret = os.environ.get(SECRET_ENV, "")
-    if not secret:
-        raise RuntimeError(
-            f"{SECRET_ENV} is not set. Copy .env.example to .env and set a long random value "
-            "(e.g. `openssl rand -hex 32`)."
-        )
-    return secret
+    secret = os.environ.get(SECRET_ENV, "").strip()
+    if secret not in PLACEHOLDER_SECRETS:
+        # Security: a short secret makes session cookies guessable.
+        if len(secret) < MIN_SECRET_LEN:
+            raise RuntimeError(
+                f"{SECRET_ENV} is too short: use {MIN_SECRET_LEN}+ random characters."
+            )
+        return secret
+    # Not set, or still the example placeholder: generate one on first start and keep it on the
+    # data volume, so sessions survive restarts and nobody runs with a guessable secret.
+    path = _secret_file()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        metadata = path.lstat()
+    except FileNotFoundError:
+        metadata = None
+    if metadata is not None:
+        if not stat.S_ISREG(metadata.st_mode):
+            raise RuntimeError(f"{path} must be a regular file with mode 0600.")
+        if metadata.st_mode & 0o077:
+            raise RuntimeError(f"{path} permissions are too open; set mode 0600.")
+        try:
+            persisted = path.read_text(encoding="ascii")
+        except UnicodeDecodeError:
+            persisted = ""
+        if PERSISTED_SECRET.fullmatch(persisted):
+            return persisted
+
+    temporary = path.with_name(f".{path.name}.{secrets.token_hex(16)}.tmp")
+    value = secrets.token_hex(32)
+    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(fd, "w", encoding="ascii") as handle:
+            fd = -1
+            handle.write(value)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+    finally:
+        if fd != -1:
+            os.close(fd)
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
+    return value
 
 
 async def lifespan(_app):

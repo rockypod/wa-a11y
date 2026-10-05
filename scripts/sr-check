@@ -19,7 +19,7 @@ trap cleanup EXIT
 
 PORT="$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])')"
 export WA_A11Y_DB_URL="sqlite:///$TMP/sr-check.db"
-export WA_A11Y_SESSION_SECRET="sr-check-only-not-a-secret"
+export WA_A11Y_SESSION_SECRET="sr-check-only-not-a-secret-padding-to-32-characters"
 export WA_A11Y_RUNNER=0
 export WA_A11Y_CSS="$ROOT/styles/dist/wa-a11y.css"
 export WA_A11Y_FONTS="$ROOT/styles/dist/fonts"

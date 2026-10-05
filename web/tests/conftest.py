@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 # Throwaway value for tests only; the real secret comes from the environment (.env).
-os.environ.setdefault("WA_A11Y_SESSION_SECRET", "test-only-not-a-secret")
+os.environ.setdefault("WA_A11Y_SESSION_SECRET", "test-only-not-a-secret-padded-to-32-chars")
 os.environ.setdefault("WA_A11Y_RUNNER", "0")
 os.environ.setdefault("WA_A11Y_WAIT_S", "0")
 os.environ.setdefault("WA_A11Y_RAG", "0")

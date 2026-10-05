@@ -102,8 +102,8 @@ openssl version
 ```bash
 git clone https://github.com/rockypod/wa-a11y.git
 cd wa-a11y
-git tag --list            # shows the released versions, for example v0.2.1
-git checkout v0.2.1       # use the newest tag from the list
+git tag --list            # shows the released versions, for example v0.2.2
+git checkout v0.2.2       # use the newest tag from the list
 ```
 
 **Check it worked:** `git describe --tags` prints the tag you chose, and `ls` shows
@@ -116,7 +116,7 @@ git checkout v0.2.1       # use the newest tag from the list
 2. Work out its SHA-256 checksum:
 
    ```bash
-   sha256sum wa-a11y-0.2.1.tar.gz      # macOS: shasum -a 256 wa-a11y-0.2.1.tar.gz
+   sha256sum wa-a11y-0.2.2.tar.gz      # macOS: shasum -a 256 wa-a11y-0.2.2.tar.gz
    ```
 
 3. If the release page lists a SHA-256 value, compare it with what you got. They must be
@@ -125,8 +125,8 @@ git checkout v0.2.1       # use the newest tag from the list
 4. Unpack and enter the folder:
 
    ```bash
-   tar -xzf wa-a11y-0.2.1.tar.gz
-   cd wa-a11y-0.2.1
+   tar -xzf wa-a11y-0.2.2.tar.gz
+   cd wa-a11y-0.2.2
    ```
 
 **Check it worked:** `ls` shows `compose.yaml` and `.env.example`.
@@ -145,33 +145,31 @@ All settings live in one file, `.env`, in the `wa-a11y` folder. It is never comm
    chmod 600 .env
    ```
 
-2. Create the **session secret** (signs the sign-in cookie). This writes a new random value into
-   `.env` without printing it:
+2. The **session secret** (signs the sign-in cookie) needs nothing from you: leave
+   `WA_A11Y_SESSION_SECRET` empty and wa-a11y generates a strong one on first start, stored on the
+   data volume (`/data/session-secret`, readable only by the app). To use your own instead, write
+   32+ random characters into `.env` without printing them:
 
    ```bash
    sed -i "s/^WA_A11Y_SESSION_SECRET=.*/WA_A11Y_SESSION_SECRET=$(openssl rand -hex 32)/" .env
    ```
 
-   On macOS use `sed -i ''` instead of `sed -i`. You can also run `openssl rand -hex 32` and paste
-   the value into `.env` with a text editor.
+   On macOS use `sed -i ''` instead of `sed -i`. A value shorter than 32 characters is refused.
 
 3. Open `.env` in a text editor and review the other settings (table below). To turn on a setting
    that starts with `#`, remove the `#`.
 
-**Check it worked:**
+**Check it worked:** `.env` exists in the `wa-a11y` folder (`ls -la .env` shows it).
 
-```bash
-grep -c '^WA_A11Y_SESSION_SECRET=[0-9a-f]\{64\}$' .env     # prints 1
-```
-
-If it prints `0`, the secret is still `change-me` or is malformed. The `web` container refuses to
-start without a secret.
+On first start, the web container creates the secret in the data volume when this setting is empty
+or `change-me`. Confirm that startup worked with the health check in section 5; never print the
+secret. A custom value shorter than 32 characters is refused.
 
 ### Every setting
 
 | Setting | Default | What it does |
 |---|---|---|
-| `WA_A11Y_SESSION_SECRET` | none (**required**) | Signs the session cookie. Use `openssl rand -hex 32`. Keep it secret and do not reuse it elsewhere. |
+| `WA_A11Y_SESSION_SECRET` | empty (generated) | Signs the session cookie. Leave empty to have a strong one generated and kept on the data volume, or set 32+ random characters (`openssl rand -hex 32`). Keep it secret. |
 | `WA_A11Y_BIND` | `127.0.0.1` | The address the `caddy` port is published on. Keep `127.0.0.1` when a reverse proxy on the same server sits in front (recommended). Use a specific private IP of the server only when a proxy on another machine connects to it. |
 | `WA_A11Y_PORT` | `8580` | The published port. |
 | `WA_A11Y_BASE_PATH` | empty | Set only when wa-a11y is served under a sub-path of another site, for example `/wa-a11y`. Your outer proxy must remove this prefix before passing requests on (see [section 8](#8-https-another-reverse-proxy-or-a-sub-path)). No trailing slash. |
@@ -406,7 +404,7 @@ firewall so that only the proxy can reach that port.
    ```bash
    git fetch --tags
    git tag --list
-   git diff v0.2.1 v0.3.0 -- .env.example      # new or changed settings (use your tags)
+   git diff v0.2.2 v0.3.0 -- .env.example      # new or changed settings (use your tags)
    git checkout v0.3.0
    ```
 
@@ -527,7 +525,7 @@ With Podman: `podman ps`, `podman-compose logs web` and so on.
 |---|---|
 | Your proxy shows **502 Bad Gateway** | wa-a11y is not running or not healthy. Check `docker compose ps` and the logs. Also check that the proxy points at `WA_A11Y_BIND:WA_A11Y_PORT`. |
 | Proxy shows **504** or the page stops loading after about 60 seconds on "Start check" | The proxy timeout is shorter than `WA_A11Y_WAIT_S`. Set it to 150 seconds ([section 8](#8-https-another-reverse-proxy-or-a-sub-path)). The check itself still finishes; open **Recent checks**. |
-| `web` keeps restarting; log says `WA_A11Y_SESSION_SECRET is not set` | Set the secret in `.env` ([section 4](#4-configure-env)), then restart (with podman-compose: `down`, then `up -d`). |
+| `web` keeps restarting; log says `WA_A11Y_SESSION_SECRET is too short` | Your own secret is under 32 characters. Set a longer one, or leave it empty to have one generated, then run `docker compose up -d` again. |
 | Sign-in "works" but you land on the sign-in page again | You are using plain `http://` with an address other than `localhost` or `127.0.0.1`. The cookie is `Secure`; use HTTPS. Also check that the browser allows cookies for the site. |
 | Links or styles are broken under a sub-path | `WA_A11Y_BASE_PATH` does not match the proxy path, or the proxy does not remove the prefix. |
 | "The checker is busy right now. Please try again in a few minutes." | The queue holds `WA_A11Y_MAX_QUEUED` checks already. Wait, or raise the limit. |
@@ -613,9 +611,10 @@ in order (sections 2, 4, 5, 6 and, if I ask for it, 8). Rules:
    installing packages, creating or editing .env, building images, starting or stopping
    containers, and creating accounts. Read-only checks (versions, `ps`, logs, `curl` of
    /healthz) may run without asking.
-4. Session secret: generate it on this machine with `openssl rand -hex 32` and write it straight
-   into .env with the `sed` command from INSTALL.md section 4. Never print it, show it, repeat it,
-   or put it anywhere other than .env.
+4. Session secret: leave WA_A11Y_SESSION_SECRET empty (wa-a11y generates one and keeps it on the
+   data volume). Only if I ask for my own, generate it on this machine with `openssl rand -hex 32`
+   and write it straight into .env with the `sed` command from INSTALL.md section 4. Never print
+   it, show it, repeat it, or put it anywhere other than .env.
 5. Passwords: never put a password on a command line, in an environment variable, or in shell
    history. Create accounts only with the interactive command from section 6
    (`... python -m app.accounts create <email> --admin`) and let me type the password at its
