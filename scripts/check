@@ -10,6 +10,10 @@
 
 set -uo pipefail
 
+# Git exports GIT_DIR to hooks. In a linked worktree that makes "git -C <dir>" take <dir> for the
+# top level, so every check would run in the wrong place. Find the repository from the path.
+unset GIT_DIR GIT_WORK_TREE
+
 # Fail closed: never run checks outside the repo.
 ROOT="$(git -C "$(dirname "$0")" rev-parse --show-toplevel 2>/dev/null)" || { echo "check: not inside a git repo" >&2; exit 2; }
 [[ -n "$ROOT" ]] && cd "$ROOT" || { echo "check: cannot cd to repo root '$ROOT'" >&2; exit 2; }

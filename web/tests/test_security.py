@@ -170,6 +170,28 @@ def test_session_secret_regenerates_empty_or_short_file(monkeypatch, tmp_path):
         assert stored.read_text() == value
 
 
+def test_session_secret_regeneration_is_logged(monkeypatch, tmp_path, caplog):
+    import logging
+
+    from app import main
+
+    monkeypatch.setenv("WA_A11Y_DB_URL", f"sqlite:///{tmp_path}/wa_a11y.db")
+    monkeypatch.setenv("WA_A11Y_SESSION_SECRET", "")
+    stored = tmp_path / "session-secret"
+    stored.write_text("a" * 64 + "\n")  # a hand-edited file with a trailing newline
+    stored.chmod(0o600)
+
+    with caplog.at_level(logging.WARNING, logger="wa_a11y.main"):
+        value = main._session_secret()
+    assert len(value) == 64 and stored.read_text() == value
+    assert any("generating a new one" in record.message for record in caplog.records)
+
+    caplog.clear()
+    with caplog.at_level(logging.WARNING, logger="wa_a11y.main"):
+        assert main._session_secret() == value  # a valid file is reused quietly
+    assert not caplog.records
+
+
 def test_session_secret_refuses_open_permissions(monkeypatch, tmp_path):
     import pytest
 

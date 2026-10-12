@@ -8,7 +8,7 @@ WA-A11y's own pages meet **WCAG 2.2 AAA** (checked on every change by both tools
 [Quality gates](#quality-gates)). Automated tools cannot find every problem: results always list
 what a person still needs to check.
 
-> **Status:** v0.2.2 — Milestone 2: Accessibility Insights-style checks, screen-reader structure checks,
+> **Status:** v0.2.3 — Milestone 2: Accessibility Insights-style checks, screen-reader structure checks,
 > guided manual checklist.
 
 ## What it does

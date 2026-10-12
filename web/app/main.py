@@ -8,6 +8,7 @@
 
 # Session secret from the environment only: FastHTML must never write a .sesskey file
 
+import logging
 import mimetypes
 import os
 import re
@@ -44,6 +45,7 @@ SECRET_ENV = "WA_A11Y_SESSION_SECRET"  # noqa: S105 — env var *name*, not a se
 PLACEHOLDER_SECRETS = {"", "change-me"}
 MIN_SECRET_LEN = 32
 PERSISTED_SECRET = re.compile(r"[0-9a-f]{64}\Z")
+log = logging.getLogger("wa_a11y.main")
 
 
 def _secret_file() -> Path:
@@ -81,6 +83,8 @@ def _session_secret() -> str:
             persisted = ""
         if PERSISTED_SECRET.fullmatch(persisted):
             return persisted
+        # Replacing the secret signs everyone out; say so rather than doing it silently.
+        log.warning("%s is not a 64-character hex secret; generating a new one.", path)
 
     temporary = path.with_name(f".{path.name}.{secrets.token_hex(16)}.tmp")
     value = secrets.token_hex(32)

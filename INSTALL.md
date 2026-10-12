@@ -102,8 +102,8 @@ openssl version
 ```bash
 git clone https://github.com/rockypod/wa-a11y.git
 cd wa-a11y
-git tag --list            # shows the released versions, for example v0.2.2
-git checkout v0.2.2       # use the newest tag from the list
+git tag --list            # shows the released versions, for example v0.2.3
+git checkout v0.2.3       # use the newest tag from the list
 ```
 
 **Check it worked:** `git describe --tags` prints the tag you chose, and `ls` shows
@@ -116,7 +116,7 @@ git checkout v0.2.2       # use the newest tag from the list
 2. Work out its SHA-256 checksum:
 
    ```bash
-   sha256sum wa-a11y-0.2.2.tar.gz      # macOS: shasum -a 256 wa-a11y-0.2.2.tar.gz
+   sha256sum wa-a11y-0.2.3.tar.gz      # macOS: shasum -a 256 wa-a11y-0.2.3.tar.gz
    ```
 
 3. If the release page lists a SHA-256 value, compare it with what you got. They must be
@@ -125,8 +125,8 @@ git checkout v0.2.2       # use the newest tag from the list
 4. Unpack and enter the folder:
 
    ```bash
-   tar -xzf wa-a11y-0.2.2.tar.gz
-   cd wa-a11y-0.2.2
+   tar -xzf wa-a11y-0.2.3.tar.gz
+   cd wa-a11y-0.2.3
    ```
 
 **Check it worked:** `ls` shows `compose.yaml` and `.env.example`.
@@ -404,7 +404,7 @@ firewall so that only the proxy can reach that port.
    ```bash
    git fetch --tags
    git tag --list
-   git diff v0.2.2 v0.3.0 -- .env.example      # new or changed settings (use your tags)
+   git diff v0.2.3 v0.3.0 -- .env.example      # new or changed settings (use your tags)
    git checkout v0.3.0
    ```
 

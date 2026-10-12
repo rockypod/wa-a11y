@@ -37,9 +37,7 @@ while read -r f; do
   case "$f" in
     *.md|docs/*|LICENSE|NOTICE|.gitignore|.dockerignore|.gitattributes) ;;
     scripts/check|scripts/selfscan|scripts/sr-check|.githooks/*) run ;;
-    web/app/routes.py|web/app/ui.py|web/app/main.py|web/app/icons.py|web/app/statement.py|\
-    web/app/assessment/pages.py|web/app/security.py|web/app/theme.py|web/app/settings.py)
-      add ruff pytest styles css-gates selfscan aria ;;
+    web/app/*.py) add ruff pytest styles css-gates selfscan aria ;;  # any module may render a page
     web/uv.lock|web/pyproject.toml) add ruff pytest pip-audit ;;
     web/*|scripts/*|selfscan/*) add ruff pytest ;;
     styles/*) add styles css-gates selfscan aria ;;

@@ -15,3 +15,10 @@ packages:
 allowBuilds:
   esbuild: false
   "@parcel/watcher": false
+
+# @siteimprove/alfa-test-utils pins simple-git ^3.36.0, which carries four advisories
+# (GHSA-v5rq-49vh-5v5c, GHSA-x6jw-m9v5-85vh, GHSA-g4wm-2vf7-vfgr, GHSA-858h-whjf-mvg5)
+# patched in 4.0.1+. The scanner never reaches the code that calls it (report/git.js);
+# the override keeps the audit clean until Alfa moves its own pin.
+overrides:
+  simple-git: ^4.0.2
